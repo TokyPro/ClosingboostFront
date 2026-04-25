@@ -119,7 +119,7 @@ export const apiClient = {
   },
 };
 
-import { Opportunity, Briefing, User, Document, Lead, ScoringConfig, ScoreEvent, PipelineStats, Recommendation, AgentMessage } from './types';
+import { Opportunity, Briefing, User } from './types';
 
 export const opportunityApi = {
   list: (userId: string) =>
