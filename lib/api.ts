@@ -200,10 +200,10 @@ export const interactionApi = {
 };
 
 export const usersApi = {
-  getOne: (userId: string) => apiClient.get(`/users/${userId}`),
-  list: () => apiClient.get('/users/'),
-  create: (data: { email: string; password: string; role: string }) => apiClient.post('/users/', data),
-  update: (id: string, data: { email?: string; role?: string; password?: string }) => apiClient.put(`/users/${id}`, data),
+  getOne: (userId: string) => apiClient.get<User>(`/users/${userId}`),
+  list: () => apiClient.get<User[]>('/users/'),
+  create: (data: { email: string; password: string; role: string }) => apiClient.post<User>('/users/', data),
+  update: (id: string, data: { email?: string; role?: string; password?: string }) => apiClient.put<User>(`/users/${id}`, data),
   delete: (id: string) => apiClient.delete(`/users/${id}`),
 };
 
