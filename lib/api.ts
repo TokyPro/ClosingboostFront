@@ -168,9 +168,18 @@ export const opportunityApi = {
     apiClient.get<Briefing>(`/opportunities/${id}/briefing`),
 };
 
+interface CopilotChatResponse {
+  message: string;
+  suggestions: string[];
+  requirements: Record<string, string | null | undefined>;
+  tactical_advice?: string | null;
+  progress: number;
+  is_complete: boolean;
+}
+
 export const copilotApi = {
   chat: (messages: Array<{ role: string; content: string }>) =>
-    apiClient.post('/copilot/chat', { messages }),
+    apiClient.post<CopilotChatResponse>('/copilot/chat', { messages }),
   save: (data: { 
     opportunity_id: string; 
     messages: Array<{ role: string; content: string }>; 
