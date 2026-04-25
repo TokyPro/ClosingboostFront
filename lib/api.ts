@@ -41,7 +41,7 @@ function buildUrl(endpoint: string): string {
 }
 
 export const apiClient = {
-  async get(endpoint: string) {
+  async get<T>(endpoint: string): Promise<T> {
     let response: Response;
     try {
       response = await fetch(buildUrl(endpoint));
@@ -52,10 +52,10 @@ export const apiClient = {
       const message = await parseApiError(response);
       throw new ApiError(message, response.status);
     }
-    return response.json();
+    return response.json() as Promise<T>;
   },
 
-  async post(endpoint: string, data: unknown) {
+  async post<T>(endpoint: string, data: unknown): Promise<T> {
     let response: Response;
     try {
       response = await fetch(buildUrl(endpoint), {
@@ -70,10 +70,10 @@ export const apiClient = {
       const message = await parseApiError(response);
       throw new ApiError(message, response.status);
     }
-    return response.json();
+    return response.json() as Promise<T>;
   },
 
-  async put(endpoint: string, data: unknown) {
+  async put<T>(endpoint: string, data: unknown): Promise<T> {
     let response: Response;
     try {
       response = await fetch(buildUrl(endpoint), {
@@ -88,7 +88,7 @@ export const apiClient = {
       const message = await parseApiError(response);
       throw new ApiError(message, response.status);
     }
-    return response.json();
+    return response.json() as Promise<T>;
   },
 
   async delete(endpoint: string): Promise<void> {
@@ -104,7 +104,7 @@ export const apiClient = {
     }
   },
 
-  async postForm(endpoint: string, formData: FormData) {
+  async postForm<T>(endpoint: string, formData: FormData): Promise<T> {
     let response: Response;
     try {
       response = await fetch(buildUrl(endpoint), { method: 'POST', body: formData });
@@ -115,16 +115,18 @@ export const apiClient = {
       const message = await parseApiError(response);
       throw new ApiError(message, response.status);
     }
-    return response.json();
+    return response.json() as Promise<T>;
   },
 };
 
+import { Opportunity, Briefing, User, Document, Lead, ScoringConfig, ScoreEvent, PipelineStats, Recommendation, AgentMessage } from './types';
+
 export const opportunityApi = {
   list: (userId: string) =>
-    apiClient.get(`/opportunities/list?user_id=${userId}`),
+    apiClient.get<Opportunity[]>(`/opportunities/list?user_id=${userId}`),
 
   getOne: (id: string) =>
-    apiClient.get(`/opportunities/${id}`),
+    apiClient.get<Opportunity>(`/opportunities/${id}`),
 
   create: (
     data: {
@@ -139,7 +141,7 @@ export const opportunityApi = {
       meeting_date?: string;
     },
     userId: string,
-  ) => apiClient.post(`/opportunities/create?user_id=${userId}`, data),
+  ) => apiClient.post<Opportunity>(`/opportunities/create?user_id=${userId}`, data),
 
   update: (
     id: string,
@@ -155,15 +157,15 @@ export const opportunityApi = {
       contact_phone?: string;
       meeting_date?: string;
     },
-  ) => apiClient.put(`/opportunities/${id}`, data),
+  ) => apiClient.put<Opportunity>(`/opportunities/${id}`, data),
 
   delete: (id: string) => apiClient.delete(`/opportunities/${id}`),
 
   search: (query: string, userId: string) =>
-    apiClient.get(`/opportunities/search?q=${encodeURIComponent(query)}&user_id=${userId}`),
+    apiClient.get<Opportunity[]>(`/opportunities/search?q=${encodeURIComponent(query)}&user_id=${userId}`),
 
   getBriefing: (id: string) =>
-    apiClient.get(`/opportunities/${id}/briefing`),
+    apiClient.get<Briefing>(`/opportunities/${id}/briefing`),
 };
 
 export const copilotApi = {
