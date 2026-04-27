@@ -75,7 +75,10 @@
     "deals": "DOSSIERS",
     "seniorLeadGen": "Senior Lead Gen",
     "technicalSales": "Ventes Techniques",
-    "accountManager": "Gestionnaire de Compte"
+    "accountManager": "Gestionnaire de Compte",
+    "discovery": "Découverte",
+    "proposal": "Proposition",
+    "negotiation": "Négociation"
   },
   "Errors": {
     "loadFailed": "Impossible de charger les données. Veuillez rafraîchir la page.",

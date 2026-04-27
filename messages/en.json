@@ -75,7 +75,10 @@
     "deals": "DEALS",
     "seniorLeadGen": "Senior Lead Gen",
     "technicalSales": "Technical Sales",
-    "accountManager": "Account Manager"
+    "accountManager": "Account Manager",
+    "discovery": "Discovery",
+    "proposal": "Proposal",
+    "negotiation": "Negotiation"
   },
   "Errors": {
     "loadFailed": "Unable to load data. Please refresh the page.",

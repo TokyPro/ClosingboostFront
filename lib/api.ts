@@ -307,6 +307,15 @@ export const leadsApi = {
     token: string;
     database_id: string;
   }) => apiClient.post('/leads/import/notion', data),
+
+  enrich: (id: string) => apiClient.post(`/leads/saved/${id}/enrich`, {}),
+};
+
+export const outreachApi = {
+  startSequence: (leadId: string, totalSteps: number = 3) =>
+    apiClient.post(`/outreach/sequences/start/${leadId}?total_steps=${totalSteps}`, {}),
+  advanceSequence: (sequenceId: string) =>
+    apiClient.post(`/outreach/sequences/advance/${sequenceId}`, {}),
 };
 
 export const scoringApi = {

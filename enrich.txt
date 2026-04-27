@@ -1,0 +1,43 @@
+
+---
+  Haute valeur, effort modéré
+
+  1. Séquences d'outreach automatisées
+  Le modèle OutreachMessage et email_service existent déjà en backend mais ne sont pas exposés. Générer une séquence de
+  3-5 emails par IA selon le tier du lead (cold → warm → hot), avec scheduling et suivi d'ouverture, compléterait
+  naturellement le pipeline.
+
+  2. Enrichissement automatique des leads
+  Quand un lead est sauvegardé, lancer en background une recherche pour compléter les champs manquants (email pro,
+  téléphone, secteur) via scraping ciblé ou une API d'enrichissement (Hunter.io, Clearbit). Aujourd'hui les leads sauvés
+   sont souvent incomplets.
+
+  3. Signaux d'achat en temps réel
+  Surveiller les actualités des entreprises en portefeuille (levées de fonds, recrutements, expansion) via Google News /
+   RSS + Gemini pour détecter le bon moment de contact. Pousser une alerte dans le dashboard.
+
+  ---
+  Valeur immédiate, faible effort
+
+  4. Pipeline analytics réel
+  La page /pipeline existe mais semble vide. Taux de conversion par étape, temps moyen par stage, deals à risque
+  (inactifs > 14j) — tout le modèle Opportunity est déjà là.
+
+  5. Notifications de relance
+  Badge + email auto quand un lead hot n'a pas été contacté depuis N jours (configurable dans Admin > Scoring). Le champ
+   outreach_attempts est déjà tracké.
+
+  6. Templates d'emails réutilisables
+  Bibliothèque de templates dans Admin, avec variables {{contact_name}}, {{company}}, {{pain_point}} injectées par
+  Gemini selon le profil du lead.
+
+  ---
+  Différenciants à moyen terme
+
+  7. Extension Chrome
+  Capture d'un lead directement depuis une page LinkedIn ou un site web, prérempli et envoyé à l'API /leads/save.
+  Supprime la saisie manuelle.
+
+  8. Copilot étendu
+  Aujourd'hui le copilot assiste les appels en direct. L'étendre pour générer automatiquement : compte-rendu structuré,
+  prochaine action, mise à jour du CRM — post-appel.

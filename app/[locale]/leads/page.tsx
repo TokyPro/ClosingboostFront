@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Sidebar } from '../../../components/Sidebar';
 import { TopBar } from '../../../components/TopBar';
-import { leadsApi, scoringApi } from '../../../lib/api';
+import { leadsApi, scoringApi, outreachApi } from '../../../lib/api';
 import { TierBadge } from '../../../components/TierBadge';
 import {
   type LeadResult,
@@ -20,6 +20,13 @@ import airtableLogo from '../../../images/airtable.png';
 import notionLogo from '../../../images/notion.webp';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+}
 
 const AVATAR_PALETTES = [
   'bg-primary/10 text-primary',
@@ -639,11 +646,15 @@ interface SavedTableProps {
   onConvert: (lead: LeadRecord) => void;
   onDelete: (id: string) => void;
   onScoreLead: (id: string) => void;
+  onEnrichLead: (id: string) => void;
+  onStartSequence: (id: string) => void;
   converting: string | null;
   scoringLeadId: string | null;
+  enrichingLeadId: string | null;
+  sequencingLeadId: string | null;
 }
 
-function SavedTable({ leads, selectedIds, onToggleSelect, onToggleAll, onStatusChange, onNotesChange, onConvert, onDelete, onScoreLead, converting, scoringLeadId }: SavedTableProps) {
+function SavedTable({ leads, selectedIds, onToggleSelect, onToggleAll, onStatusChange, onNotesChange, onConvert, onDelete, onScoreLead, onEnrichLead, onStartSequence, converting, scoringLeadId, enrichingLeadId, sequencingLeadId }: SavedTableProps) {
   const t = useTranslations('Leads');
   const STATUSES: LeadStatus[] = ['new', 'contacted', 'qualified', 'converted', 'rejected'];
   const statusLabels: Record<LeadStatus, string> = {
@@ -803,6 +814,32 @@ function SavedTable({ leads, selectedIds, onToggleSelect, onToggleAll, onStatusC
                     </button>
                   )}
                   <button
+                    onClick={() => onEnrichLead(lead.id)}
+                    disabled={enrichingLeadId === lead.id}
+                    title="Enrichir IA"
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-secondary/10 hover:bg-secondary/20 text-secondary rounded-lg text-[10px] font-bold transition-colors disabled:opacity-50"
+                  >
+                    {enrichingLeadId === lead.id ? (
+                      <span className="material-symbols-outlined text-[13px] animate-spin">autorenew</span>
+                    ) : (
+                      <span className="material-symbols-outlined text-[13px]">auto_fix</span>
+                    )}
+                    Enrichir
+                  </button>
+                  <button
+                    onClick={() => onStartSequence(lead.id)}
+                    disabled={sequencingLeadId === lead.id}
+                    title="Démarrer Séquence"
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-[10px] font-bold transition-colors disabled:opacity-50"
+                  >
+                    {sequencingLeadId === lead.id ? (
+                      <span className="material-symbols-outlined text-[13px] animate-spin">autorenew</span>
+                    ) : (
+                      <span className="material-symbols-outlined text-[13px]">mail</span>
+                    )}
+                    Séquence
+                  </button>
+                  <button
                     onClick={() => onScoreLead(lead.id)}
                     disabled={scoringLeadId === lead.id}
                     title="Score IA"
@@ -899,7 +936,7 @@ function SearchTab({ savedUrlMap, onLeadSaved }: SearchTabProps) {
     if (!msg || loading) return;
 
     setInputMessage('');
-    const msgId = crypto.randomUUID();
+    const msgId = generateUUID();
     setMessages((prev) => [...prev, { id: msgId, role: 'user', content: msg }]);
     setLoading(true);
 
@@ -915,7 +952,7 @@ function SearchTab({ savedUrlMap, onLeadSaved }: SearchTabProps) {
           : 'Aucun résultat trouvé pour cette recherche. Essayez d\'affiner votre demande.');
 
       setMessages((prev) => [...prev, {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         role: 'ai',
         content: aiContent,
         leads: res.leads,
@@ -924,7 +961,7 @@ function SearchTab({ savedUrlMap, onLeadSaved }: SearchTabProps) {
       }]);
     } catch (err: unknown) {
       setMessages((prev) => [...prev, {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         role: 'ai',
         content: err instanceof Error ? err.message : 'Erreur de recherche. Veuillez réessayer.',
       }]);
@@ -1094,6 +1131,8 @@ function SavedTab() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [converting, setConverting] = useState<string | null>(null);
   const [scoringLeadId, setScoringLeadId] = useState<string | null>(null);
+  const [enrichingLeadId, setEnrichingLeadId] = useState<string | null>(null);
+  const [sequencingLeadId, setSequencingLeadId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showExport, setShowExport] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -1168,6 +1207,31 @@ function SavedTab() {
       toast.error(err instanceof Error ? err.message : 'Erreur lors du scoring');
     } finally {
       setScoringLeadId(null);
+    }
+  };
+
+  const handleEnrichLead = async (id: string) => {
+    setEnrichingLeadId(id);
+    try {
+      await leadsApi.enrich(id);
+      await reload();
+      toast.success('Lead enrichi avec succès');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de l\'enrichissement');
+    } finally {
+      setEnrichingLeadId(null);
+    }
+  };
+
+  const handleStartSequence = async (id: string) => {
+    setSequencingLeadId(id);
+    try {
+      await outreachApi.startSequence(id);
+      toast.success('Séquence d\'outreach démarrée');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur lors du démarrage de la séquence');
+    } finally {
+      setSequencingLeadId(null);
     }
   };
 
@@ -1252,8 +1316,12 @@ function SavedTab() {
           onConvert={handleConvert}
           onDelete={handleDelete}
           onScoreLead={handleScoreLead}
+          onEnrichLead={handleEnrichLead}
+          onStartSequence={handleStartSequence}
           converting={converting}
           scoringLeadId={scoringLeadId}
+          enrichingLeadId={enrichingLeadId}
+          sequencingLeadId={sequencingLeadId}
         />
       )}
     </div>
