@@ -14,19 +14,12 @@ import {
   type LeadsListResponse,
 } from '../../../lib/types';
 import { toast } from '../../../lib/toast';
-import { cn } from '../../../lib/cn';
+import { cn, generateUUID } from '../../../lib/cn';
 import { useAuth } from '../../../lib/auth';
 import airtableLogo from '../../../images/airtable.png';
 import notionLogo from '../../../images/notion.webp';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
-}
 
 const AVATAR_PALETTES = [
   'bg-primary/10 text-primary',
