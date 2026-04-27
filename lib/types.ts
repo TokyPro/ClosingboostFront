@@ -35,6 +35,7 @@ export interface User {
   id: string;
   email: string;
   role: string;
+  status: string;
   created_at: string;
 }
 
@@ -56,6 +57,7 @@ export interface LeadSearchResponse {
   total: number;
   query_used: string;
   demo_mode: boolean;
+  ai_response: string | null;
 }
 
 export interface LeadRecord {

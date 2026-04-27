@@ -35,16 +35,24 @@ export class ApiError extends Error {
   }
 }
 
+const TOKEN_KEY = 'sb_token';
+
 function buildUrl(endpoint: string): string {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return `${API_BASE_URL}${cleanEndpoint}`;
+}
+
+function authHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem(TOKEN_KEY);
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export const apiClient = {
   async get<T>(endpoint: string): Promise<T> {
     let response: Response;
     try {
-      response = await fetch(buildUrl(endpoint));
+      response = await fetch(buildUrl(endpoint), { headers: authHeaders() });
     } catch {
       throw new ApiError('Unable to reach the server. Check your connection.', 0);
     }
@@ -60,7 +68,7 @@ export const apiClient = {
     try {
       response = await fetch(buildUrl(endpoint), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(data),
       });
     } catch {
@@ -78,7 +86,7 @@ export const apiClient = {
     try {
       response = await fetch(buildUrl(endpoint), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(data),
       });
     } catch {
@@ -94,7 +102,7 @@ export const apiClient = {
   async delete(endpoint: string): Promise<void> {
     let response: Response;
     try {
-      response = await fetch(buildUrl(endpoint), { method: 'DELETE' });
+      response = await fetch(buildUrl(endpoint), { method: 'DELETE', headers: authHeaders() });
     } catch {
       throw new ApiError('Unable to reach the server. Check your connection.', 0);
     }
@@ -107,7 +115,7 @@ export const apiClient = {
   async postForm<T>(endpoint: string, formData: FormData): Promise<T> {
     let response: Response;
     try {
-      response = await fetch(buildUrl(endpoint), { method: 'POST', body: formData });
+      response = await fetch(buildUrl(endpoint), { method: 'POST', body: formData, headers: authHeaders() });
     } catch {
       throw new ApiError('Unable to reach the server. Check your connection.', 0);
     }
@@ -205,6 +213,8 @@ export const usersApi = {
   create: (data: { email: string; password: string; role: string }) => apiClient.post<User>('/users/', data),
   update: (id: string, data: { email?: string; role?: string; password?: string }) => apiClient.put<User>(`/users/${id}`, data),
   delete: (id: string) => apiClient.delete(`/users/${id}`),
+  approve: (id: string) => apiClient.post<User>(`/users/${id}/approve`, {}),
+  reject: (id: string) => apiClient.post(`/users/${id}/reject`, {}),
 };
 
 export const documentsApi = {
@@ -226,11 +236,8 @@ export const adminApi = {
 
 export const leadsApi = {
   search: (data: {
-    query?: string;
-    location?: string;
-    activity_sector?: string;
+    message: string;
     sources?: string[];
-    max_results?: number;
   }) => apiClient.post('/leads/search', data),
 
   save: (data: {

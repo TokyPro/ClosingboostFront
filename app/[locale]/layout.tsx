@@ -6,6 +6,8 @@ import { getMessages } from 'next-intl/server';
 import { routing } from '@/i18n/routing';
 import { Toaster } from '../../components/Toaster';
 import { ThemeProvider } from '../../components/ThemeProvider';
+import { SidebarProvider } from '../../components/SidebarContext';
+import { AuthProvider } from '../../lib/auth';
 import '../globals.css';
 
 const inter = Inter({
@@ -54,8 +56,12 @@ export default async function LocaleLayout({ children, params }: Props) {
       <body className="bg-background font-body text-on-surface antialiased overflow-hidden">
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
-            {children}
-            <Toaster />
+            <AuthProvider locale={locale}>
+              <SidebarProvider>
+                {children}
+                <Toaster />
+              </SidebarProvider>
+            </AuthProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

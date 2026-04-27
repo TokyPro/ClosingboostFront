@@ -1,5 +1,7 @@
-import React from 'react';
-import { getTranslations } from 'next-intl/server';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Sidebar } from '../../../components/Sidebar';
 import { TopBar } from '../../../components/TopBar';
 import { ErrorBanner } from '../../../components/ErrorBanner';
@@ -7,7 +9,7 @@ import { cn } from '../../../lib/cn';
 import { opportunityApi, usersApi } from '../../../lib/api';
 import { Opportunity, User } from '../../../lib/types';
 import { Link } from '@/i18n/navigation';
-import { CURRENT_USER_ID } from '../../../lib/config';
+import { useAuth } from '../../../lib/auth';
 
 const formatCurrency = (value: number) => {
   if (value >= 1000) {
@@ -16,7 +18,7 @@ const formatCurrency = (value: number) => {
   return `$${value}`;
 };
 
-const getPriorityClass = (priority: string, t: any) => {
+const getPriorityClass = (priority: string) => {
   switch (priority) {
     case 'high':
       return 'bg-tertiary-container text-on-tertiary-container';
@@ -179,24 +181,29 @@ const TeamMember = ({ name, role, deals, dealsLabel }: TeamMemberProps) => (
   </div>
 );
 
-const DashboardPage = async () => {
-  const t = await getTranslations('Dashboard');
-  const tErr = await getTranslations('Errors');
+const DashboardPage = () => {
+  const t = useTranslations('Dashboard');
+  const tErr = useTranslations('Errors');
+  const { user: authUser } = useAuth();
 
-  let opportunities: Opportunity[] = [];
-  let user: User | null = null;
-  let loadError: string | null = null;
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  try {
-    [opportunities, user] = await Promise.all([
-      opportunityApi.list(CURRENT_USER_ID),
-      usersApi.getOne(CURRENT_USER_ID),
-    ]);
-  } catch (err) {
-    loadError = err instanceof Error ? err.message : tErr('loadFailed');
-  }
+  useEffect(() => {
+    if (!authUser?.id) return;
+    Promise.all([
+      opportunityApi.list(authUser.id),
+      usersApi.getOne(authUser.id),
+    ]).then(([opps, u]) => {
+      setOpportunities(opps);
+      setUser(u);
+      setLoadError(null);
+    }).catch((err: unknown) => {
+      setLoadError(err instanceof Error ? err.message : tErr('loadFailed'));
+    });
+  }, [authUser?.id, tErr]);
 
-  // Compute real metrics from loaded opportunities
   const totalValue = opportunities.reduce((acc, o) => acc + o.value, 0);
   const closedOpps = opportunities.filter((o) => o.stage === 'signed');
   const conversionRate = opportunities.length > 0
@@ -213,7 +220,6 @@ const DashboardPage = async () => {
     { id: 'closed', title: t('closed'), dotClass: 'bg-on-primary-container' },
   ];
 
-  // goalProgress = % of total pipeline value that is closed
   const goalProgress = totalValue > 0
     ? Math.round((closedOpps.reduce((acc, o) => acc + o.value, 0) / totalValue) * 100)
     : 0;
@@ -315,8 +321,8 @@ const DashboardPage = async () => {
                               title={opp.title}
                               value={formatCurrency(opp.value)}
                               priority={opp.priority === 'high' ? t('highPriority') : opp.priority === 'medium' ? t('qualified') : undefined}
-                              priorityClass={getPriorityClass(opp.priority, t)}
-                              initials={opp.company_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                              priorityClass={getPriorityClass(opp.priority)}
+                              initials={opp.company_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
                               progress={stage.id === 'negotiation' ? opp.win_probability * 100 : undefined}
                               winProb={stage.id === 'negotiation' ? `${(opp.win_probability * 100).toFixed(0)}% ${t('winProb')}` : undefined}
                               daysLeft={t('daysLeft')}

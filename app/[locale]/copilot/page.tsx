@@ -12,7 +12,7 @@ import { Sidebar } from '../../../components/Sidebar';
 import { copilotApi, opportunityApi, interactionApi } from '../../../lib/api';
 import { Interaction } from '../../../lib/types';
 import { cn } from '../../../lib/cn';
-import { CURRENT_USER_ID } from '../../../lib/config';
+import { useAuth } from '../../../lib/auth';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -82,6 +82,7 @@ function BriefingCreationModal({
 }) {
   const t = useTranslations('Copilot');
   const router = useRouter();
+  const { user } = useAuth();
   const [title, setTitle] = useState(suggestedTitle);
   const [company, setCompany] = useState('');
   const [value, setValue] = useState('');
@@ -95,7 +96,7 @@ function BriefingCreationModal({
     try {
       const opp = await opportunityApi.create(
         { title: title.trim(), company_name: company.trim(), value: parseFloat(value) || 0, priority: 'medium', win_probability: 0 },
-        CURRENT_USER_ID,
+        user?.id ?? '',
       ) as { id: string };
       router.push(`/opportunities/${opp.id}/briefing`);
     } catch (err) {
@@ -643,6 +644,7 @@ interface ChatState {
 function CopilotInner() {
   const t = useTranslations('Copilot');
   const uid = useId();
+  const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
 
@@ -694,8 +696,8 @@ function CopilotInner() {
     });
 
     // Fetch opportunities
-    opportunityApi.list(CURRENT_USER_ID).then(setOpportunities).catch(console.error);
-  }, [t]);
+    if (user?.id) opportunityApi.list(user.id).then(setOpportunities).catch(console.error);
+  }, [t, user]);
 
   useEffect(() => { scrollToBottom(); }, [state.messages]);
 

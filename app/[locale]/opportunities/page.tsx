@@ -1,5 +1,8 @@
-import React from 'react';
-import { getTranslations } from 'next-intl/server';
+'use client';
+
+import React, { useState, useEffect, Suspense } from 'react';
+import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { Sidebar } from '../../../components/Sidebar';
 import { TopBar } from '../../../components/TopBar';
 import { ErrorBanner } from '../../../components/ErrorBanner';
@@ -7,11 +10,9 @@ import { cn } from '../../../lib/cn';
 import { opportunityApi, usersApi } from '../../../lib/api';
 import { Opportunity, User } from '../../../lib/types';
 import { Link } from '@/i18n/navigation';
-import { CURRENT_USER_ID } from '../../../lib/config';
+import { useAuth } from '../../../lib/auth';
 import { KanbanView } from '../../../components/opportunities/KanbanView';
 import { TableView } from '../../../components/opportunities/TableView';
-
-// ── URL builder ───────────────────────────────────────────────────────────────
 
 function buildHref(view: string, page: number, query: string) {
   const p = new URLSearchParams();
@@ -21,32 +22,33 @@ function buildHref(view: string, page: number, query: string) {
   return `/opportunities?${p.toString()}`;
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+function OpportunitiesListPageInner() {
+  const t = useTranslations('Dashboard');
+  const tErr = useTranslations('Errors');
+  const { user: authUser } = useAuth();
+  const searchParams = useSearchParams();
 
-const OpportunitiesListPage = async ({
-  searchParams,
-}: {
-  searchParams?: { q?: string; view?: string; page?: string };
-}) => {
-  const t = await getTranslations('Dashboard');
-  const tErr = await getTranslations('Errors');
+  const query = searchParams.get('q')?.trim() ?? '';
+  const view  = searchParams.get('view') === 'table' ? 'table' : 'kanban';
+  const page  = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
 
-  const query = searchParams?.q?.trim() ?? '';
-  const view  = searchParams?.view === 'table' ? 'table' : 'kanban';
-  const page  = Math.max(1, parseInt(searchParams?.page ?? '1', 10));
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  let opportunities: Opportunity[] = [];
-  let user: User | null = null;
-  let loadError: string | null = null;
-
-  try {
-    [opportunities, user] = await Promise.all([
-      query ? opportunityApi.search(query, CURRENT_USER_ID) : opportunityApi.list(CURRENT_USER_ID),
-      usersApi.getOne(CURRENT_USER_ID),
-    ]);
-  } catch (err) {
-    loadError = err instanceof Error ? err.message : tErr('loadFailed');
-  }
+  useEffect(() => {
+    if (!authUser?.id) return;
+    Promise.all([
+      query ? opportunityApi.search(query, authUser.id) : opportunityApi.list(authUser.id),
+      usersApi.getOne(authUser.id),
+    ]).then(([opps, u]) => {
+      setOpportunities(opps as Opportunity[]);
+      setUser(u as User);
+      setLoadError(null);
+    }).catch((err: unknown) => {
+      setLoadError(err instanceof Error ? err.message : tErr('loadFailed'));
+    });
+  }, [authUser?.id, query, tErr]);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -60,7 +62,6 @@ const OpportunitiesListPage = async ({
         <section className="p-8 flex-1 overflow-y-auto custom-scrollbar">
           {loadError && <ErrorBanner message={loadError} />}
 
-          {/* Header */}
           <div className="mb-6 flex justify-between items-end flex-wrap gap-4">
             <div>
               <h2 className="font-headline text-3xl font-black tracking-tight text-primary">
@@ -73,7 +74,6 @@ const OpportunitiesListPage = async ({
               </p>
             </div>
             <div className="flex items-center gap-3">
-              {/* View toggle */}
               <div className="flex items-center bg-surface-container-low rounded-xl p-1 gap-0.5">
                 <Link
                   href={buildHref('kanban', page, query)}
@@ -111,7 +111,6 @@ const OpportunitiesListPage = async ({
             </div>
           </div>
 
-          {/* Content */}
           {view === 'table' ? (
             <TableView opportunities={opportunities} page={page} query={query} />
           ) : (
@@ -121,6 +120,12 @@ const OpportunitiesListPage = async ({
       </main>
     </div>
   );
-};
+}
 
-export default OpportunitiesListPage;
+export default function OpportunitiesListPage() {
+  return (
+    <Suspense>
+      <OpportunitiesListPageInner />
+    </Suspense>
+  );
+}

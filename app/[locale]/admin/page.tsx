@@ -1,16 +1,20 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Sidebar } from '../../../components/Sidebar';
 import { TopBar } from '../../../components/TopBar';
 import { adminApi, usersApi, documentsApi, scoringApi } from '../../../lib/api';
+import { useAuth } from '../../../lib/auth';
 import { toast } from '../../../lib/toast';
 import { cn } from '../../../lib/cn';
+import airtableLogo from '../../../images/airtable.png';
+import notionLogo from '../../../images/notion.webp';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface User { id: string; email: string; role: string; created_at: string }
+interface User { id: string; email: string; role: string; status: string; created_at: string }
 interface Doc { id: string; original_name: string; category: string; status: string; file_size: number | null; updated_at: string }
 interface ScoringConfig {
   warm_threshold: number; hot_threshold: number;
@@ -21,10 +25,11 @@ interface ScoringConfig {
   cooldown_score_penalty: number;
 }
 
-type AdminTab = 'users' | 'knowledge' | 'integrations' | 'email' | 'feedback';
+type AdminTab = 'users' | 'pending' | 'knowledge' | 'integrations' | 'email' | 'feedback';
 
 const TABS: { id: AdminTab; icon: string; label: string }[] = [
   { id: 'users',        icon: 'group',         label: 'Utilisateurs' },
+  { id: 'pending',      icon: 'pending_actions', label: 'Inscriptions' },
   { id: 'knowledge',    icon: 'database',      label: 'Base de connaissance' },
   { id: 'integrations', icon: 'extension',     label: 'Intégrations' },
   { id: 'email',        icon: 'mail',          label: 'Email' },
@@ -36,13 +41,15 @@ const TABS: { id: AdminTab; icon: string; label: string }[] = [
 const inputCls = 'w-full bg-surface-container-low rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/20 outline-none transition-all';
 
 function SectionCard({ title, icon, children, action }: {
-  title: string; icon: string; children: React.ReactNode; action?: React.ReactNode;
+  title: string; icon: React.ReactNode; children: React.ReactNode; action?: React.ReactNode;
 }) {
   return (
     <div className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant/10">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-primary">{icon}</span>
+          {typeof icon === 'string'
+            ? <span className="material-symbols-outlined text-[18px] text-primary">{icon}</span>
+            : icon}
           <h3 className="font-headline font-bold text-on-surface">{title}</h3>
         </div>
         {action}
@@ -338,7 +345,7 @@ function IntegrationsTab() {
   return (
     <div className="space-y-6">
       {/* Airtable */}
-      <SectionCard title="Airtable" icon="grid_on"
+      <SectionCard title="Airtable" icon={<Image src={airtableLogo} alt="Airtable" width={18} height={18} className="object-contain" />}
         action={<span className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">Stocké localement</span>}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
           <Field label="API Key" hint="Commence par pat… — Airtable > Account > API">
@@ -358,7 +365,7 @@ function IntegrationsTab() {
       </SectionCard>
 
       {/* Notion */}
-      <SectionCard title="Notion" icon="article"
+      <SectionCard title="Notion" icon={<Image src={notionLogo} alt="Notion" width={18} height={18} className="object-contain" />}
         action={<span className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">Stocké localement</span>}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
           <Field label="Integration Token" hint="Notion > Paramètres > Mes intégrations > Créer">
@@ -648,10 +655,80 @@ function FeedbackTab() {
   );
 }
 
+// ── Pending registrations tab ─────────────────────────────────────────────────
+
+function PendingTab({ users, loading, onApprove, onReject }: {
+  users: User[];
+  loading: boolean;
+  onApprove: (u: User) => Promise<void>;
+  onReject: (u: User) => Promise<void>;
+}) {
+  const [processing, setProcessing] = useState<string | null>(null);
+
+  const handle = async (u: User, action: (u: User) => Promise<void>) => {
+    setProcessing(u.id);
+    await action(u).finally(() => setProcessing(null));
+  };
+
+  if (loading) {
+    return <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => (
+      <div key={i} className="h-14 bg-surface-container-low rounded-xl animate-pulse" />
+    ))}</div>;
+  }
+
+  return (
+    <SectionCard title="Inscriptions en attente" icon="pending_actions">
+      {users.length === 0 ? (
+        <div className="text-center py-12">
+          <span className="material-symbols-outlined text-[48px] text-outline/40 block mb-3">check_circle</span>
+          <p className="text-sm text-on-surface-variant">Aucune inscription en attente</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {users.map(u => (
+            <div key={u.id} className="flex items-center justify-between gap-4 p-4 bg-surface-container-low rounded-xl">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[18px] text-primary">person</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-on-surface truncate">{u.email}</p>
+                  <p className="text-[11px] text-on-surface-variant">{new Date(u.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => void handle(u, onApprove)}
+                  disabled={processing === u.id}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                >
+                  {processing === u.id
+                    ? <span className="material-symbols-outlined text-[14px] animate-spin">autorenew</span>
+                    : <span className="material-symbols-outlined text-[14px]">check_circle</span>}
+                  Approuver
+                </button>
+                <button
+                  onClick={() => void handle(u, onReject)}
+                  disabled={processing === u.id}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-error/10 hover:bg-error/20 text-error rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[14px]">cancel</span>
+                  Refuser
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
   const t = useTranslations('Admin');
+  const { user: authUser, loading: authLoading } = useAuth();
   const [tab, setTab] = useState<AdminTab>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [documents, setDocuments] = useState<Doc[]>([]);
@@ -727,6 +804,25 @@ export default function AdminPage() {
     finally { setActionSubmitting(false); }
   };
 
+  // Guard: admin only
+  if (!authLoading && authUser?.role !== 'admin') {
+    return (
+      <div className="flex h-screen bg-background overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface">
+          <TopBar />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <span className="material-symbols-outlined text-[64px] text-error/40 block mb-4">lock</span>
+              <h2 className="font-headline font-bold text-on-surface text-xl mb-2">Accès refusé</h2>
+              <p className="text-sm text-on-surface-variant">Cette page est réservée aux administrateurs.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
@@ -743,29 +839,57 @@ export default function AdminPage() {
 
             {/* Tab bar */}
             <div className="flex gap-1 bg-surface-container-low rounded-2xl p-1 w-fit overflow-x-auto">
-              {TABS.map(({ id, icon, label }) => (
-                <button key={id} onClick={() => setTab(id)}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap',
-                    tab === id ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface',
-                  )}>
-                  <span className="material-symbols-outlined text-[17px]"
-                    style={{ fontVariationSettings: tab === id ? "'FILL' 1" : "'FILL' 0" }}>
-                    {icon}
-                  </span>
-                  {label}
-                </button>
-              ))}
+              {TABS.map(({ id, icon, label }) => {
+                const pendingCount = id === 'pending' ? users.filter(u => u.status === 'pending').length : 0;
+                return (
+                  <button key={id} onClick={() => setTab(id)}
+                    className={cn(
+                      'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap',
+                      tab === id ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface',
+                    )}>
+                    <span className="material-symbols-outlined text-[17px]"
+                      style={{ fontVariationSettings: tab === id ? "'FILL' 1" : "'FILL' 0" }}>
+                      {icon}
+                    </span>
+                    {label}
+                    {pendingCount > 0 && (
+                      <span className="bg-error text-white text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none">
+                        {pendingCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Tab content */}
           <div className="px-8 py-6">
             {tab === 'users' && (
-              <UsersTab users={users} loading={loading}
+              <UsersTab users={users.filter(u => u.status !== 'pending')} loading={loading}
                 onAdd={() => setUserModal({ mode: 'create' })}
                 onEdit={u => setUserModal({ mode: 'edit', user: u })}
                 onDelete={u => setDeleteUser(u)}
+              />
+            )}
+            {tab === 'pending' && (
+              <PendingTab
+                users={users.filter(u => u.status === 'pending')}
+                loading={loading}
+                onApprove={async (u) => {
+                  try {
+                    const approved = await usersApi.approve(u.id) as User;
+                    setUsers(prev => prev.map(x => x.id === u.id ? approved : x));
+                    toast.success(`${u.email} approuvé`);
+                  } catch (err) { toast.error(err instanceof Error ? err.message : 'Erreur'); }
+                }}
+                onReject={async (u) => {
+                  try {
+                    await usersApi.reject(u.id);
+                    setUsers(prev => prev.filter(x => x.id !== u.id));
+                    toast.success(`${u.email} refusé`);
+                  } catch (err) { toast.error(err instanceof Error ? err.message : 'Erreur'); }
+                }}
               />
             )}
             {tab === 'knowledge' && (

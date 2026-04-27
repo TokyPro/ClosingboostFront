@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Sidebar } from '../../../components/Sidebar';
 import { TopBar } from '../../../components/TopBar';
@@ -14,7 +15,9 @@ import {
 } from '../../../lib/types';
 import { toast } from '../../../lib/toast';
 import { cn } from '../../../lib/cn';
-import { CURRENT_USER_ID } from '../../../lib/config';
+import { useAuth } from '../../../lib/auth';
+import airtableLogo from '../../../images/airtable.png';
+import notionLogo from '../../../images/notion.webp';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -211,6 +214,16 @@ interface ImportModalProps {
   onImportSuccess: () => void;
 }
 
+const LS_AIRTABLE = 'avv_airtable_cfg';
+const LS_NOTION   = 'avv_notion_cfg';
+
+function loadAirtableCfg() {
+  try { return JSON.parse(localStorage.getItem(LS_AIRTABLE) ?? '{}'); } catch { return {}; }
+}
+function loadNotionCfg() {
+  try { return JSON.parse(localStorage.getItem(LS_NOTION) ?? '{}'); } catch { return {}; }
+}
+
 function ImportModal({ onClose, onImportSuccess }: ImportModalProps) {
   const [tab, setTab] = useState<'airtable' | 'notion'>('airtable');
   const [airtableKey, setAirtableKey] = useState('');
@@ -220,6 +233,16 @@ function ImportModal({ onClose, onImportSuccess }: ImportModalProps) {
   const [notionDb, setNotionDb] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ imported: number; errors: string[] } | null>(null);
+
+  useEffect(() => {
+    const a = loadAirtableCfg();
+    const n = loadNotionCfg();
+    if (a.api_key)    setAirtableKey(a.api_key);
+    if (a.base_id)    setAirtableBase(a.base_id);
+    if (a.table_name) setAirtableTable(a.table_name);
+    if (n.token)       setNotionToken(n.token);
+    if (n.database_id) setNotionDb(n.database_id);
+  }, []);
 
   const handleAirtableImport = async () => {
     if (!airtableKey || !airtableBase) return;
@@ -267,13 +290,15 @@ function ImportModal({ onClose, onImportSuccess }: ImportModalProps) {
 
         <div className="flex gap-1 px-6 pt-4">
           <button onClick={() => { setTab('airtable'); setResult(null); }}
-            className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all',
+            className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all',
               tab === 'airtable' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant')}>
+            <Image src={airtableLogo} alt="Airtable" width={16} height={16} className="object-contain" />
             Airtable
           </button>
           <button onClick={() => { setTab('notion'); setResult(null); }}
-            className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all',
+            className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all',
               tab === 'notion' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant')}>
+            <Image src={notionLogo} alt="Notion" width={16} height={16} className="object-contain" />
             Notion
           </button>
         </div>
@@ -335,6 +360,16 @@ function ExportModal({ leads, selectedIds, onClose }: ExportModalProps) {
   const [notionDb, setNotionDb] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ exported: number; errors: string[] } | null>(null);
+
+  useEffect(() => {
+    const a = loadAirtableCfg();
+    const n = loadNotionCfg();
+    if (a.api_key)    setAirtableKey(a.api_key);
+    if (a.base_id)    setAirtableBase(a.base_id);
+    if (a.table_name) setAirtableTable(a.table_name);
+    if (n.token)       setNotionToken(n.token);
+    if (n.database_id) setNotionDb(n.database_id);
+  }, []);
 
   const targets = selectedIds.size > 0
     ? leads.filter((l) => selectedIds.has(l.id))
@@ -406,10 +441,10 @@ function ExportModal({ leads, selectedIds, onClose }: ExportModalProps) {
     } finally { setLoading(false); }
   };
 
-  const TABS: { id: ExportTab; icon: string; label: string }[] = [
+  const TABS: { id: ExportTab; icon: string | null; label: string }[] = [
     { id: 'csv', icon: 'table_view', label: 'CSV' },
-    { id: 'airtable', icon: 'grid_on', label: 'Airtable' },
-    { id: 'notion', icon: 'article', label: 'Notion' },
+    { id: 'airtable', icon: null, label: 'Airtable' },
+    { id: 'notion', icon: null, label: 'Notion' },
   ];
 
   return (
@@ -434,12 +469,17 @@ function ExportModal({ leads, selectedIds, onClose }: ExportModalProps) {
           {TABS.map(({ id, icon, label }) => (
             <button key={id} onClick={() => { setTab(id); setResult(null); }}
               className={cn(
-                'flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all',
+                'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all',
                 tab === id
                   ? 'bg-primary text-on-primary shadow-sm'
                   : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high',
               )}>
-              <span className="material-symbols-outlined text-[14px]">{icon}</span>
+              {icon
+                ? <span className="material-symbols-outlined text-[14px]">{icon}</span>
+                : id === 'airtable'
+                  ? <Image src={airtableLogo} alt="Airtable" width={14} height={14} className="object-contain" />
+                  : <Image src={notionLogo} alt="Notion" width={14} height={14} className="object-contain" />
+              }
               {label}
             </button>
           ))}
@@ -476,7 +516,7 @@ function ExportModal({ leads, selectedIds, onClose }: ExportModalProps) {
               <button onClick={handleAirtableExport} disabled={!airtableKey || !airtableBase || loading}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-xl text-sm shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-60 disabled:scale-100">
                 {loading ? <><span className="material-symbols-outlined text-[18px] animate-spin">autorenew</span>Export en cours…</>
-                  : <><span className="material-symbols-outlined text-[18px]">upload</span>Envoyer vers Airtable</>}
+                  : <><Image src={airtableLogo} alt="Airtable" width={18} height={18} className="object-contain" />Envoyer vers Airtable</>}
               </button>
             </div>
           )}
@@ -493,7 +533,7 @@ function ExportModal({ leads, selectedIds, onClose }: ExportModalProps) {
               <button onClick={handleNotionExport} disabled={!notionToken || !notionDb || loading}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-xl text-sm shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-60 disabled:scale-100">
                 {loading ? <><span className="material-symbols-outlined text-[18px] animate-spin">autorenew</span>Export en cours…</>
-                  : <><span className="material-symbols-outlined text-[18px]">upload</span>Envoyer vers Notion</>}
+                  : <><Image src={notionLogo} alt="Notion" width={18} height={18} className="object-contain" />Envoyer vers Notion</>}
               </button>
             </div>
           )}
@@ -792,26 +832,35 @@ function SavedTable({ leads, selectedIds, onToggleSelect, onToggleAll, onStatusC
   );
 }
 
-// ─── Search tab ────────────────────────────────────────────────────────────────
+// ─── Search tab (chat interface) ──────────────────────────────────────────────
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'ai';
+  content: string;
+  leads?: LeadResult[];
+  queryUsed?: string;
+  demoMode?: boolean;
+}
 
 interface SearchTabProps {
   savedUrlMap: Map<string, string>;
   onLeadSaved: (lead: LeadResult, dbId: string) => void;
-  searchQuery: string;
-  searchLocation: string;
 }
 
-function SearchTab({ savedUrlMap, onLeadSaved, searchQuery, searchLocation }: SearchTabProps) {
+function SearchTab({ savedUrlMap, onLeadSaved }: SearchTabProps) {
   const t = useTranslations('Leads');
-  const [query, setQuery] = useState(searchQuery);
-  const [location, setLocation] = useState(searchLocation);
-  const [activitySector, setActivitySector] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
   const [sources, setSources] = useState<string[]>(['linkedin']);
-  const [maxResults, setMaxResults] = useState(20);
   const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState<LeadSearchResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
 
   const toggleSource = (src: string) => {
     setSources((prev) => prev.includes(src) ? prev.filter((s) => s !== src) : [...prev, src]);
@@ -819,39 +868,22 @@ function SearchTab({ savedUrlMap, onLeadSaved, searchQuery, searchLocation }: Se
 
   const ALL_SOURCES = ['linkedin', 'datagouv', 'web'];
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true); setError(null); setResponse(null);
-    try {
-      const res = await leadsApi.search({
-        query: query.trim() || undefined,
-        location: location.trim() || undefined,
-        activity_sector: activitySector.trim() || undefined,
-        sources: sources.length > 0 ? sources : ALL_SOURCES,
-        max_results: maxResults
-      }) as LeadSearchResponse;
-      setResponse(res);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur de recherche');
-    } finally { setLoading(false); }
-  };
-
-  const handleSave = async (lead: LeadResult) => {
+  const handleSave = async (lead: LeadResult, searchQuery: string) => {
     setSavingIds((prev) => { const n = new Set(prev); n.add(lead.id); return n; });
     try {
       const saved = await leadsApi.save({
         company_name: lead.company,
         contact_name: lead.name,
         contact_title: lead.job_title,
-        activity_sector: query.trim() || null,
+        activity_sector: null,
         linkedin_url: lead.source.startsWith('linkedin') ? lead.url : null,
         website_url: (lead.source === 'web' || lead.source === 'datagouv') ? lead.url : null,
         location: lead.location,
         summary: lead.summary,
         source: lead.source,
         relevance_score: lead.relevance_score,
-        search_query: query.trim() || null,
-        search_location: location.trim() || null,
+        search_query: searchQuery || null,
+        search_location: null,
       }) as LeadRecord;
       toast.success(t('saveSuccess'));
       onLeadSaved(lead, saved.id);
@@ -862,98 +894,191 @@ function SearchTab({ savedUrlMap, onLeadSaved, searchQuery, searchLocation }: Se
     }
   };
 
+  const handleSend = async () => {
+    const msg = inputMessage.trim();
+    if (!msg || loading) return;
+
+    setInputMessage('');
+    const msgId = crypto.randomUUID();
+    setMessages((prev) => [...prev, { id: msgId, role: 'user', content: msg }]);
+    setLoading(true);
+
+    try {
+      const res = await leadsApi.search({
+        message: msg,
+        sources: sources.length > 0 ? sources : ALL_SOURCES,
+      }) as LeadSearchResponse;
+
+      const aiContent = res.ai_response
+        || (res.leads.length > 0
+          ? `J'ai trouvé ${res.leads.length} lead${res.leads.length > 1 ? 's' : ''} pour votre recherche.`
+          : 'Aucun résultat trouvé pour cette recherche. Essayez d\'affiner votre demande.');
+
+      setMessages((prev) => [...prev, {
+        id: crypto.randomUUID(),
+        role: 'ai',
+        content: aiContent,
+        leads: res.leads,
+        queryUsed: res.query_used,
+        demoMode: res.demo_mode,
+      }]);
+    } catch (err: unknown) {
+      setMessages((prev) => [...prev, {
+        id: crypto.randomUUID(),
+        role: 'ai',
+        content: err instanceof Error ? err.message : 'Erreur de recherche. Veuillez réessayer.',
+      }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      void handleSend();
+    }
+  };
+
   return (
-    <div className="px-8 pb-8 space-y-6">
-      {/* Form */}
-      <form onSubmit={handleSearch} className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <SearchField label={t('queryLabel')} icon="work" value={query} onChange={setQuery} placeholder={t('queryPlaceholder')} />
-          <SearchField label={t('sectorLabel')} icon="category" value={activitySector} onChange={setActivitySector} placeholder={t('sectorPlaceholder')} />
-          <SearchField label={t('locationLabel')} icon="location_on" value={location} onChange={setLocation} placeholder={t('locationPlaceholder')} />
+    <div className="px-8 pb-8 flex flex-col gap-4" style={{ minHeight: 'calc(100vh - 280px)' }}>
+      {/* Source controls */}
+      <div className="bg-surface-container-lowest rounded-2xl px-5 py-3 shadow-sm flex items-center gap-4 flex-wrap">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant shrink-0">{t('sourcesLabel')}</span>
+        <div className="flex items-center gap-2">
+          {([
+            { id: 'linkedin', icon: 'group', label: t('sourceLinkedin') },
+            { id: 'datagouv', icon: 'account_balance', label: t('sourceDataGouv') },
+            { id: 'web', icon: 'language', label: t('sourceWeb') },
+          ] as const).map(({ id, icon, label }) => (
+            <button key={id} type="button" onClick={() => toggleSource(id)}
+              className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all',
+                sources.includes(id) ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high')}>
+              <span className="material-symbols-outlined text-[14px]">{icon}</span>
+              {label}
+            </button>
+          ))}
         </div>
-        <div className="flex items-center gap-5 flex-wrap">
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant shrink-0">{t('sourcesLabel')}</span>
-            {([
-              { id: 'linkedin', icon: 'group', label: t('sourceLinkedin') },
-              { id: 'datagouv', icon: 'account_balance', label: t('sourceDataGouv') },
-              { id: 'web', icon: 'language', label: t('sourceWeb') },
-            ] as const).map(({ id, icon, label }) => (
-              <button key={id} type="button" onClick={() => toggleSource(id)}
-                className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all',
-                  sources.includes(id) ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high')}>
-                <span className="material-symbols-outlined text-[14px]">{icon}</span>
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">{t('maxResultsLabel')}</span>
-            <select value={maxResults} onChange={(e) => setMaxResults(Number(e.target.value))}
-              className="bg-surface-container-low rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer">
-              <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option>
-            </select>
-          </div>
-          <button type="submit" disabled={loading}
-            className="ml-auto flex items-center gap-2 px-6 py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:scale-100 text-sm">
-            {loading ? (<><span className="material-symbols-outlined text-[18px] animate-spin">autorenew</span>{t('searching')}</>)
-              : (<><span className="material-symbols-outlined text-[18px]">person_search</span>{t('searchBtn')}</>)}
-          </button>
-        </div>
-      </form>
+      </div>
 
-      {/* Error */}
-      {error && (
-        <div className="bg-error/10 text-error rounded-2xl px-5 py-4 text-sm font-medium flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">error</span>{error}
-        </div>
-      )}
-
-      {/* Demo notice */}
-      {response?.demo_mode && (
-        <div className="flex items-center gap-2 bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-xs text-on-surface-variant">
-          <span className="material-symbols-outlined text-[16px] text-primary">info</span>
-          {t('demoNotice')}
-        </div>
-      )}
-
-      {/* Loading skeletons */}
-      {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
-        </div>
-      )}
-
-      {/* Results */}
-      {!loading && response !== null && (
-        response.leads.length > 0 ? (
-          <>
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-on-surface">
-                <span className="text-primary">{response.leads.length}</span> lead{response.leads.length > 1 ? 's' : ''} trouvé{response.leads.length > 1 ? 's' : ''}
-                {response.query_used && <span className="text-on-surface-variant font-normal"> · {response.query_used}</span>}
-              </p>
-              <span className="text-xs text-on-surface-variant">{t('tagline')}</span>
+      {/* Chat area */}
+      <div className="flex-1 flex flex-col gap-5 overflow-y-auto">
+        {messages.length === 0 && !loading && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-[32px] text-primary">smart_toy</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {response.leads.map((lead) => (
-                <SearchCard
-                  key={lead.id}
-                  lead={lead}
-                  savedDbId={savedUrlMap.get(lead.url) ?? null}
-                  saving={savingIds.has(lead.id)}
-                  onSave={handleSave}
-                />
+            <p className="font-headline font-bold text-on-surface text-lg mb-2">Recherche intelligente de leads</p>
+            <p className="text-sm text-on-surface-variant max-w-md">
+              Décrivez les leads que vous cherchez en langage naturel. Gemini va analyser votre demande et chercher sur les sources sélectionnées.
+            </p>
+            <div className="flex flex-col gap-2 mt-6 w-full max-w-sm">
+              {[
+                'Directeurs commerciaux SaaS B2B en Île-de-France',
+                'CTOs de startups tech à Lyon',
+                'Responsables RH dans les PME industrielles',
+              ].map((example) => (
+                <button key={example} onClick={() => setInputMessage(example)}
+                  className="text-left px-4 py-3 bg-surface-container-low hover:bg-surface-container-high rounded-xl text-xs text-on-surface-variant hover:text-on-surface transition-colors border border-outline-variant/10">
+                  {example}
+                </button>
               ))}
             </div>
-          </>
-        ) : (
-          <div className="text-center py-24">
-            <span className="material-symbols-outlined text-[52px] text-outline/50 block mb-4">person_search</span>
-            <p className="text-on-surface-variant font-medium">{t('noResults')}</p>
           </div>
-        )
-      )}
+        )}
+
+        {messages.map((msg) => (
+          <div key={msg.id} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+            {msg.role === 'ai' && (
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mr-3 mt-1">
+                <span className="material-symbols-outlined text-[16px] text-primary">smart_toy</span>
+              </div>
+            )}
+            <div className={cn('flex flex-col gap-3 max-w-[80%]', msg.role === 'user' ? 'items-end' : 'items-start')}>
+              <div className={cn(
+                'px-4 py-3 rounded-2xl text-sm leading-relaxed',
+                msg.role === 'user'
+                  ? 'bg-primary text-on-primary rounded-tr-sm'
+                  : 'bg-surface-container-lowest shadow-sm text-on-surface rounded-tl-sm',
+              )}>
+                {msg.content}
+              </div>
+
+              {msg.demoMode && (
+                <div className="flex items-center gap-1.5 bg-surface-container-low rounded-xl px-3 py-2 text-xs text-on-surface-variant">
+                  <span className="material-symbols-outlined text-[14px] text-primary">info</span>
+                  {t('demoNotice')}
+                </div>
+              )}
+
+              {msg.leads && msg.leads.length > 0 && (
+                <div className="w-full">
+                  <p className="text-xs font-bold text-on-surface-variant mb-2">
+                    <span className="text-primary">{msg.leads.length}</span> lead{msg.leads.length > 1 ? 's' : ''} trouvé{msg.leads.length > 1 ? 's' : ''}
+                    {msg.queryUsed && <span className="font-normal"> · {msg.queryUsed}</span>}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {msg.leads.map((lead) => (
+                      <SearchCard
+                        key={lead.id}
+                        lead={lead}
+                        savedDbId={savedUrlMap.get(lead.url) ?? null}
+                        saving={savingIds.has(lead.id)}
+                        onSave={(l) => void handleSave(l, msg.queryUsed ?? '')}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {msg.leads && msg.leads.length === 0 && msg.role === 'ai' && (
+                <div className="text-center py-8 px-6 bg-surface-container-lowest rounded-2xl shadow-sm w-full">
+                  <span className="material-symbols-outlined text-[40px] text-outline/50 block mb-3">person_search</span>
+                  <p className="text-on-surface-variant text-sm">{t('noResults')}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {loading && (
+          <div className="flex justify-start">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mr-3 mt-1">
+              <span className="material-symbols-outlined text-[16px] text-primary animate-spin">autorenew</span>
+            </div>
+            <div className="bg-surface-container-lowest shadow-sm rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-on-surface-variant">
+              Gemini analyse votre demande et recherche des leads...
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-3">
+                {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={chatEndRef} />
+      </div>
+
+      {/* Chat input */}
+      <div className="bg-surface-container-lowest rounded-2xl shadow-sm px-4 py-3 flex items-end gap-3">
+        <textarea
+          ref={textareaRef}
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ex: Directeurs commerciaux dans les PME tech à Paris..."
+          rows={1}
+          className="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none resize-none leading-relaxed py-1"
+          style={{ maxHeight: '120px', overflowY: 'auto' }}
+          disabled={loading}
+        />
+        <button
+          onClick={() => void handleSend()}
+          disabled={loading || !inputMessage.trim()}
+          className="shrink-0 w-10 h-10 flex items-center justify-center bg-primary text-on-primary rounded-xl shadow-sm hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:scale-100"
+        >
+          <span className="material-symbols-outlined text-[20px]">send</span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -962,6 +1087,7 @@ function SearchTab({ savedUrlMap, onLeadSaved, searchQuery, searchLocation }: Se
 
 function SavedTab() {
   const t = useTranslations('Leads');
+  const { user } = useAuth();
   const [leads, setLeads] = useState<LeadRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -1002,7 +1128,7 @@ function SavedTab() {
   const handleConvert = async (lead: LeadRecord) => {
     setConverting(lead.id);
     try {
-      await leadsApi.convert(lead.id, CURRENT_USER_ID);
+      await leadsApi.convert(lead.id, user?.id ?? '');
       toast.success(t('convertSuccess'));
       await reload();
     } catch (err: unknown) {
@@ -1208,8 +1334,6 @@ export default function LeadsPage() {
             <SearchTab
               savedUrlMap={savedUrlMap}
               onLeadSaved={handleLeadSaved}
-              searchQuery=""
-              searchLocation=""
             />
           ) : (
             <SavedTab />
@@ -1220,22 +1344,3 @@ export default function LeadsPage() {
   );
 }
 
-// ─── Field helpers ────────────────────────────────────────────────────────────
-
-function SearchField({ label, icon, value, onChange, placeholder, required }: {
-  label: string; icon: string; value: string; onChange: (v: string) => void;
-  placeholder: string; required?: boolean;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-        {label}{required && <span className="text-error ml-1">*</span>}
-      </label>
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">{icon}</span>
-        <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} required={required}
-          className="w-full bg-surface-container-low rounded-xl pl-9 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/50" />
-      </div>
-    </div>
-  );
-}

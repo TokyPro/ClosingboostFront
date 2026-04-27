@@ -8,7 +8,7 @@ import { Sidebar } from '../../../../components/Sidebar';
 import { TopBar } from '../../../../components/TopBar';
 import { opportunityApi } from '../../../../lib/api';
 import { cn } from '../../../../lib/cn';
-import { CURRENT_USER_ID } from '../../../../lib/config';
+import { useAuth } from '../../../../lib/auth';
 
 type Priority = 'low' | 'medium' | 'high';
 
@@ -31,6 +31,7 @@ const PRIORITY_OPTIONS: { value: Priority; labelKey: string }[] = [
 export default function NewOpportunityPage() {
   const t = useTranslations('NewOpportunity');
   const router = useRouter();
+  const { user } = useAuth();
 
   const [form, setForm] = useState<FormState>({
     title: '',
@@ -64,7 +65,7 @@ export default function NewOpportunityPage() {
           contact_name: form.contact_name.trim() || undefined,
           meeting_date: form.meeting_date ? new Date(form.meeting_date).toISOString() : undefined,
         },
-        CURRENT_USER_ID,
+        user?.id ?? '',
       );
       setCreated({ id: result.id, title: form.title.trim(), company_name: form.company_name.trim() });
       setSubmitting(false);
