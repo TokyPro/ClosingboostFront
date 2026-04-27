@@ -91,6 +91,9 @@ export interface LeadRecord {
   last_outreach_at: string | null;
   email_verified: boolean;
   email_status: string;
+  // Enrichment
+  company_news: string[] | null;
+  enriched_at: string | null;
 }
 
 export interface LeadsListResponse {

@@ -309,6 +309,10 @@ export const leadsApi = {
   }) => apiClient.post('/leads/import/notion', data),
 
   enrich: (id: string) => apiClient.post(`/leads/saved/${id}/enrich`, {}),
+
+  signals: (id: string) => apiClient.get(`/leads/saved/${id}/signals`),
+
+  batchEnrich: (lead_ids: string[]) => apiClient.post('/leads/saved/batch-enrich', { lead_ids }),
 };
 
 export const outreachApi = {
@@ -342,3 +346,27 @@ export const agentsApi = {
   updateMessageStatus: (messageId: string, status: string) =>
     apiClient.put(`/agents/messages/${messageId}/status?status=${status}`, {}),
 };
+
+export const alertsApi = {
+  hotFollowUp: (days = 3) => apiClient.get<{ count: number; leads: { id: string; company_name: string | null; score: number; last_outreach_at: string | null }[] }>(`/scoring/alerts/hot-follow-up?days=${days}`),
+};
+
+export const templatesApi = {
+  list: () => apiClient.get<EmailTemplate[]>('/templates/'),
+  create: (data: { name: string; tier: string; subject: string; body: string; variables?: string[] }) =>
+    apiClient.post<EmailTemplate>('/templates/', data),
+  update: (id: string, data: Partial<{ name: string; tier: string; subject: string; body: string; variables: string[] }>) =>
+    apiClient.put<EmailTemplate>(`/templates/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/templates/${id}`),
+};
+
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  tier: string;
+  subject: string;
+  body: string;
+  variables: string[] | null;
+  created_at: string;
+  updated_at: string;
+}

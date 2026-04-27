@@ -1,16 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Sidebar } from '../../../components/Sidebar';
 import { TopBar } from '../../../components/TopBar';
-import { adminApi, usersApi, documentsApi, scoringApi } from '../../../lib/api';
+import { adminApi, usersApi, documentsApi, scoringApi, templatesApi, type EmailTemplate } from '../../../lib/api';
 import { useAuth } from '../../../lib/auth';
 import { toast } from '../../../lib/toast';
 import { cn } from '../../../lib/cn';
-import airtableLogo from '../../../images/airtable.png';
-import notionLogo from '../../../images/notion.webp';
+import { NotionIcon, AirtableIcon } from '../../../components/icons/BrandIcons';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -25,7 +23,7 @@ interface ScoringConfig {
   cooldown_score_penalty: number;
 }
 
-type AdminTab = 'users' | 'pending' | 'knowledge' | 'integrations' | 'email' | 'feedback';
+type AdminTab = 'users' | 'pending' | 'knowledge' | 'integrations' | 'email' | 'feedback' | 'templates';
 
 const TABS: { id: AdminTab; icon: string; label: string }[] = [
   { id: 'users',        icon: 'group',         label: 'Utilisateurs' },
@@ -34,6 +32,7 @@ const TABS: { id: AdminTab; icon: string; label: string }[] = [
   { id: 'integrations', icon: 'extension',     label: 'Intégrations' },
   { id: 'email',        icon: 'mail',          label: 'Email' },
   { id: 'feedback',     icon: 'loop',          label: 'Boucle Feedback' },
+  { id: 'templates',    icon: 'description',   label: 'Templates' },
 ];
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -345,7 +344,7 @@ function IntegrationsTab() {
   return (
     <div className="space-y-6">
       {/* Airtable */}
-      <SectionCard title="Airtable" icon={<Image src={airtableLogo} alt="Airtable" width={18} height={18} className="object-contain" />}
+      <SectionCard title="Airtable" icon={<AirtableIcon size={18} />}
         action={<span className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">Stocké localement</span>}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
           <Field label="API Key" hint="Commence par pat… — Airtable > Account > API">
@@ -365,7 +364,7 @@ function IntegrationsTab() {
       </SectionCard>
 
       {/* Notion */}
-      <SectionCard title="Notion" icon={<Image src={notionLogo} alt="Notion" width={18} height={18} className="object-contain" />}
+      <SectionCard title="Notion" icon={<NotionIcon size={18} />}
         action={<span className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">Stocké localement</span>}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
           <Field label="Integration Token" hint="Notion > Paramètres > Mes intégrations > Créer">
@@ -724,6 +723,174 @@ function PendingTab({ users, loading, onApprove, onReject }: {
   );
 }
 
+// ── Templates Tab ─────────────────────────────────────────────────────────────
+
+const TIER_LABELS: Record<string, string> = {
+  all: 'Tous', cold: 'Cold', warm: 'Warm', hot: 'Hot',
+};
+const TIER_COLORS: Record<string, string> = {
+  all: 'bg-surface-container text-on-surface-variant',
+  cold: 'bg-blue-500/10 text-blue-600',
+  warm: 'bg-amber-500/10 text-amber-600',
+  hot: 'bg-red-500/10 text-red-600',
+};
+
+const TEMPLATE_VARS = ['{{contact_name}}', '{{company}}', '{{pain_point}}', '{{score}}', '{{tier}}'];
+
+function TemplatesTab() {
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<EmailTemplate | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ name: '', tier: 'all', subject: '', body: '' });
+
+  const reload = async () => {
+    setLoading(true);
+    try { setTemplates(await templatesApi.list()); }
+    catch { toast.error('Erreur de chargement des templates'); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { void reload(); }, []);
+
+  const openCreate = () => {
+    setForm({ name: '', tier: 'all', subject: '', body: '' });
+    setEditing(null);
+    setCreating(true);
+  };
+
+  const openEdit = (t: EmailTemplate) => {
+    setForm({ name: t.name, tier: t.tier, subject: t.subject, body: t.body });
+    setEditing(t);
+    setCreating(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name || !form.subject || !form.body) return;
+    setSaving(true);
+    try {
+      if (editing) {
+        const updated = await templatesApi.update(editing.id, form);
+        setTemplates((prev) => prev.map((t) => t.id === editing.id ? updated : t));
+        toast.success('Template mis à jour');
+      } else {
+        const created = await templatesApi.create(form);
+        setTemplates((prev) => [created, ...prev]);
+        toast.success('Template créé');
+      }
+      setCreating(false);
+    } catch { toast.error('Erreur lors de la sauvegarde'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await templatesApi.delete(id);
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+      toast.success('Template supprimé');
+    } catch { toast.error('Erreur lors de la suppression'); }
+  };
+
+  const insertVar = (v: string) => setForm((f) => ({ ...f, body: f.body + v }));
+
+  return (
+    <div className="space-y-5">
+      <SectionCard
+        title="Templates d'emails"
+        icon="description"
+        action={
+          <button onClick={openCreate}
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary font-bold rounded-xl text-xs transition-all hover:opacity-90">
+            <span className="material-symbols-outlined text-[14px]">add</span>
+            Nouveau template
+          </button>
+        }
+      >
+        {creating && (
+          <div className="mb-6 rounded-2xl bg-surface-container-low p-5 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Nom du template">
+                <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Ex: Prospection cold SaaS" className={inputCls} />
+              </Field>
+              <Field label="Tier cible">
+                <select value={form.tier} onChange={(e) => setForm((f) => ({ ...f, tier: e.target.value }))} className={inputCls}>
+                  {Object.entries(TIER_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </Field>
+            </div>
+            <Field label="Objet de l'email">
+              <input value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
+                placeholder="Ex: {{company}} — une idée pour votre pipeline" className={inputCls} />
+            </Field>
+            <Field label="Corps de l'email">
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {TEMPLATE_VARS.map((v) => (
+                    <button key={v} type="button" onClick={() => insertVar(v)}
+                      className="text-[10px] font-mono px-2 py-0.5 bg-tertiary/10 text-tertiary rounded-md hover:bg-tertiary/20 transition-colors">
+                      {v}
+                    </button>
+                  ))}
+                </div>
+                <textarea value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+                  rows={8} placeholder="Bonjour {{contact_name}},&#10;&#10;..."
+                  className={cn(inputCls, 'resize-y font-mono text-xs')} />
+              </div>
+            </Field>
+            <div className="flex gap-2 pt-1">
+              <SaveBtn loading={saving} onClick={() => void handleSave()} />
+              <button onClick={() => setCreating(false)}
+                className="px-4 py-2.5 text-sm font-bold text-on-surface-variant hover:text-on-surface transition-colors">
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-14 bg-surface-container-low rounded-xl animate-pulse" />
+          ))}</div>
+        ) : templates.length === 0 ? (
+          <div className="text-center py-12">
+            <span className="material-symbols-outlined text-[48px] text-outline/30 block mb-3">description</span>
+            <p className="text-sm text-on-surface-variant">Aucun template. Créez-en un pour vos séquences d'outreach.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {templates.map((tpl) => (
+              <div key={tpl.id} className="flex items-start gap-4 rounded-xl bg-surface-container-low p-4">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-bold text-sm text-on-surface">{tpl.name}</p>
+                    <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-bold uppercase', TIER_COLORS[tpl.tier] ?? TIER_COLORS.all)}>
+                      {TIER_LABELS[tpl.tier] ?? tpl.tier}
+                    </span>
+                  </div>
+                  <p className="text-xs text-on-surface-variant truncate">{tpl.subject}</p>
+                  <p className="text-[11px] text-on-surface-variant/60 line-clamp-2 font-mono">{tpl.body}</p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button onClick={() => openEdit(tpl)}
+                    className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                    <span className="material-symbols-outlined text-[16px]">edit</span>
+                  </button>
+                  <button onClick={() => void handleDelete(tpl.id)}
+                    className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-colors">
+                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -903,6 +1070,7 @@ export default function AdminPage() {
             {tab === 'integrations' && <IntegrationsTab />}
             {tab === 'email' && <EmailTab />}
             {tab === 'feedback' && <FeedbackTab />}
+            {tab === 'templates' && <TemplatesTab />}
           </div>
         </div>
       </div>

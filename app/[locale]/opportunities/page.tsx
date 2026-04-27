@@ -22,6 +22,23 @@ function buildHref(view: string, page: number, query: string) {
   return `/opportunities?${p.toString()}`;
 }
 
+function OpportunitiesSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="space-y-3">
+            <div className="h-5 bg-surface-container-high rounded-full w-24 animate-pulse" />
+            {Array.from({ length: 3 }).map((_, j) => (
+              <div key={j} className="h-28 bg-surface-container-low rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function OpportunitiesListPageInner() {
   const t = useTranslations('Dashboard');
   const tErr = useTranslations('Errors');
@@ -35,6 +52,7 @@ function OpportunitiesListPageInner() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!authUser?.id) return;
@@ -45,8 +63,10 @@ function OpportunitiesListPageInner() {
       setOpportunities(opps as Opportunity[]);
       setUser(u as User);
       setLoadError(null);
+      setLoading(false);
     }).catch((err: unknown) => {
       setLoadError(err instanceof Error ? err.message : tErr('loadFailed'));
+      setLoading(false);
     });
   }, [authUser?.id, query, tErr]);
 
@@ -111,7 +131,9 @@ function OpportunitiesListPageInner() {
             </div>
           </div>
 
-          {view === 'table' ? (
+          {loading ? (
+            <OpportunitiesSkeleton />
+          ) : view === 'table' ? (
             <TableView opportunities={opportunities} page={page} query={query} />
           ) : (
             <KanbanView opportunities={opportunities} />

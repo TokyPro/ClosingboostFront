@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Sidebar } from '../../../components/Sidebar';
 import { TopBar } from '../../../components/TopBar';
+import { LeadDrawer } from '../../../components/LeadDrawer';
 import { leadsApi, scoringApi, outreachApi } from '../../../lib/api';
 import { TierBadge } from '../../../components/TierBadge';
 import {
@@ -16,8 +16,7 @@ import {
 import { toast } from '../../../lib/toast';
 import { cn, generateUUID } from '../../../lib/cn';
 import { useAuth } from '../../../lib/auth';
-import airtableLogo from '../../../images/airtable.png';
-import notionLogo from '../../../images/notion.webp';
+import { LinkedInIcon, NotionIcon, AirtableIcon } from '../../../components/icons/BrandIcons';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -142,23 +141,27 @@ interface SearchCardProps {
   savedDbId: string | null;
   saving: boolean;
   onSave: (lead: LeadResult) => void;
+  onOpen: (lead: LeadResult) => void;
 }
 
-function SearchCard({ lead, savedDbId, saving, onSave }: SearchCardProps) {
+function SearchCard({ lead, savedDbId, saving, onSave, onOpen }: SearchCardProps) {
   const t = useTranslations('Leads');
   const initials = lead.avatar_initials;
   const displayName = lead.name ?? lead.company ?? '—';
   const isSaved = savedDbId !== null;
 
   return (
-    <article className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col gap-3.5">
+    <article
+      onClick={() => onOpen(lead)}
+      className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-200 flex flex-col gap-3.5 cursor-pointer group"
+    >
       <div className="flex items-start gap-3">
         <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center font-headline font-black text-base shrink-0', avatarColor(initials))}>
           {initials}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-bold text-sm text-on-surface truncate leading-tight">{displayName}</p>
+            <p className="font-bold text-sm text-on-surface truncate leading-tight group-hover:text-primary transition-colors">{displayName}</p>
             <ScoreBadge score={lead.relevance_score} />
           </div>
           {lead.job_title && <p className="text-xs text-on-surface-variant mt-0.5 truncate">{lead.job_title}</p>}
@@ -180,13 +183,14 @@ function SearchCard({ lead, savedDbId, saving, onSave }: SearchCardProps) {
           href={lead.url}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
           className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#0A66C2]/10 hover:bg-[#0A66C2]/20 text-[#0A66C2] font-bold rounded-xl text-xs transition-colors"
         >
-          <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+          <LinkedInIcon size={14} />
           LinkedIn
         </a>
         <button
-          onClick={() => !isSaved && !saving && onSave(lead)}
+          onClick={(e) => { e.stopPropagation(); !isSaved && !saving && onSave(lead); }}
           disabled={isSaved || saving}
           className={cn(
             'flex-1 flex items-center justify-center gap-1.5 py-2.5 font-bold rounded-xl text-xs transition-all',
@@ -204,6 +208,170 @@ function SearchCard({ lead, savedDbId, saving, onSave }: SearchCardProps) {
         </button>
       </div>
     </article>
+  );
+}
+
+// ─── Search Lead Detail Panel ─────────────────────────────────────────────────
+
+interface SearchLeadDetailProps {
+  lead: LeadResult;
+  savedDbId: string | null;
+  saving: boolean;
+  onSave: (lead: LeadResult) => void;
+  onClose: () => void;
+}
+
+function SearchLeadDetail({ lead, savedDbId, saving, onSave, onClose }: SearchLeadDetailProps) {
+  const t = useTranslations('Leads');
+  const initials = lead.avatar_initials;
+  const displayName = lead.name ?? lead.company ?? '—';
+  const isSaved = savedDbId !== null;
+  const pct = Math.round(lead.relevance_score * 100);
+
+  const scoreColor =
+    pct >= 70 ? 'text-green-600 bg-green-500/10'
+    : pct >= 40 ? 'text-yellow-600 bg-yellow-500/10'
+    : 'text-on-surface-variant bg-surface-container';
+
+  const barColor =
+    pct >= 70 ? 'bg-green-500'
+    : pct >= 40 ? 'bg-yellow-500'
+    : 'bg-outline/40';
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-40 bg-on-surface/20 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-[440px] flex-col bg-surface-container-lowest shadow-[0px_24px_48px_rgba(26,28,31,0.12)] animate-in slide-in-from-right duration-200">
+
+        {/* Header */}
+        <div className="flex items-start gap-3 bg-surface-container-low px-5 py-4 shrink-0">
+          <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center font-headline font-black text-lg shrink-0', avatarColor(initials))}>
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-bold text-on-surface leading-tight truncate">{displayName}</p>
+            {lead.job_title && <p className="text-sm text-on-surface-variant truncate mt-0.5">{lead.job_title}</p>}
+            {lead.company && lead.name && (
+              <p className="text-xs text-primary font-semibold mt-0.5 truncate">{lead.company}</p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-surface-container transition-colors shrink-0"
+          >
+            <span className="material-symbols-outlined text-[20px] text-on-surface-variant">close</span>
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+
+          {/* Relevance score */}
+          <section className="rounded-xl bg-surface-container p-4 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Correspondance</span>
+              <span className={cn('text-sm font-black px-2.5 py-0.5 rounded-full', scoreColor)}>{pct}%</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-surface-container-high overflow-hidden">
+              <div className={cn('h-full rounded-full transition-all', barColor)} style={{ width: `${pct}%` }} />
+            </div>
+            <p className="text-xs text-on-surface-variant">
+              {pct >= 70 ? 'Correspondance élevée — lead très pertinent.'
+                : pct >= 40 ? 'Correspondance modérée — lead potentiellement intéressant.'
+                : 'Correspondance faible — à qualifier manuellement.'}
+            </p>
+          </section>
+
+          {/* Informations */}
+          <section className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Informations</h3>
+            <div className="space-y-2">
+              {lead.company && (
+                <div className="flex items-center gap-2.5 text-sm">
+                  <span className="material-symbols-outlined text-[17px] text-on-surface-variant shrink-0">business</span>
+                  <span className="text-on-surface font-medium">{lead.company}</span>
+                </div>
+              )}
+              {lead.location && (
+                <div className="flex items-center gap-2.5 text-sm">
+                  <span className="material-symbols-outlined text-[17px] text-on-surface-variant shrink-0">location_on</span>
+                  <span className="text-on-surface">{lead.location}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2.5 text-sm">
+                <span className="material-symbols-outlined text-[17px] text-on-surface-variant shrink-0">category</span>
+                <SourceBadge source={lead.source} />
+              </div>
+              <div className="flex items-start gap-2.5 text-sm">
+                <span className="material-symbols-outlined text-[17px] text-on-surface-variant shrink-0 mt-0.5">link</span>
+                <a
+                  href={lead.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline break-all text-xs leading-relaxed"
+                >
+                  {lead.url.replace(/^https?:\/\//, '')}
+                </a>
+              </div>
+            </div>
+          </section>
+
+          {/* Summary */}
+          {lead.summary && (
+            <section className="space-y-2">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Résumé</h3>
+              <p className="text-sm leading-relaxed text-on-surface bg-surface-container rounded-xl p-3">
+                {lead.summary}
+              </p>
+            </section>
+          )}
+
+          {/* Hint to save */}
+          {!isSaved && (
+            <div className="rounded-xl bg-primary/5 border border-primary/10 p-3 flex items-start gap-2">
+              <span className="material-symbols-outlined text-[16px] text-primary shrink-0 mt-0.5">info</span>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Sauvegardez ce lead pour accéder à l'enrichissement IA, au scoring et aux séquences d'outreach.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center gap-2 bg-surface-container-low px-5 py-3 shrink-0">
+          <a
+            href={lead.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#0A66C2]/10 hover:bg-[#0A66C2]/20 text-[#0A66C2] font-bold rounded-xl text-sm transition-colors"
+          >
+            <LinkedInIcon size={15} />
+            Voir le profil
+          </a>
+          <button
+            onClick={() => !isSaved && !saving && onSave(lead)}
+            disabled={isSaved || saving}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1.5 py-2.5 font-bold rounded-xl text-sm transition-all',
+              isSaved
+                ? 'bg-green-500/10 text-green-600 cursor-default'
+                : saving
+                  ? 'bg-primary/10 text-primary opacity-60 cursor-wait'
+                  : 'bg-primary text-on-primary hover:opacity-90 active:scale-95 shadow-sm shadow-primary/20',
+            )}
+          >
+            <span className="material-symbols-outlined text-[15px]">
+              {isSaved ? 'bookmark' : saving ? 'autorenew' : 'bookmark_add'}
+            </span>
+            {isSaved ? t('savedBtn') : t('saveBtn')}
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -292,13 +460,13 @@ function ImportModal({ onClose, onImportSuccess }: ImportModalProps) {
           <button onClick={() => { setTab('airtable'); setResult(null); }}
             className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all',
               tab === 'airtable' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant')}>
-            <Image src={airtableLogo} alt="Airtable" width={16} height={16} className="object-contain" />
+            <AirtableIcon size={16} />
             Airtable
           </button>
           <button onClick={() => { setTab('notion'); setResult(null); }}
             className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all',
               tab === 'notion' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant')}>
-            <Image src={notionLogo} alt="Notion" width={16} height={16} className="object-contain" />
+            <NotionIcon size={16} />
             Notion
           </button>
         </div>
@@ -477,8 +645,8 @@ function ExportModal({ leads, selectedIds, onClose }: ExportModalProps) {
               {icon
                 ? <span className="material-symbols-outlined text-[14px]">{icon}</span>
                 : id === 'airtable'
-                  ? <Image src={airtableLogo} alt="Airtable" width={14} height={14} className="object-contain" />
-                  : <Image src={notionLogo} alt="Notion" width={14} height={14} className="object-contain" />
+                  ? <AirtableIcon size={14} />
+                  : <NotionIcon size={14} />
               }
               {label}
             </button>
@@ -516,7 +684,7 @@ function ExportModal({ leads, selectedIds, onClose }: ExportModalProps) {
               <button onClick={handleAirtableExport} disabled={!airtableKey || !airtableBase || loading}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-xl text-sm shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-60 disabled:scale-100">
                 {loading ? <><span className="material-symbols-outlined text-[18px] animate-spin">autorenew</span>Export en cours…</>
-                  : <><Image src={airtableLogo} alt="Airtable" width={18} height={18} className="object-contain" />Envoyer vers Airtable</>}
+                  : <><AirtableIcon size={18} />Envoyer vers Airtable</>}
               </button>
             </div>
           )}
@@ -533,7 +701,7 @@ function ExportModal({ leads, selectedIds, onClose }: ExportModalProps) {
               <button onClick={handleNotionExport} disabled={!notionToken || !notionDb || loading}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-xl text-sm shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-60 disabled:scale-100">
                 {loading ? <><span className="material-symbols-outlined text-[18px] animate-spin">autorenew</span>Export en cours…</>
-                  : <><Image src={notionLogo} alt="Notion" width={18} height={18} className="object-contain" />Envoyer vers Notion</>}
+                  : <><NotionIcon size={18} />Envoyer vers Notion</>}
               </button>
             </div>
           )}
@@ -641,13 +809,21 @@ interface SavedTableProps {
   onScoreLead: (id: string) => void;
   onEnrichLead: (id: string) => void;
   onStartSequence: (id: string) => void;
+  onOpenDrawer: (lead: LeadRecord) => void;
   converting: string | null;
   scoringLeadId: string | null;
   enrichingLeadId: string | null;
   sequencingLeadId: string | null;
 }
 
-function SavedTable({ leads, selectedIds, onToggleSelect, onToggleAll, onStatusChange, onNotesChange, onConvert, onDelete, onScoreLead, onEnrichLead, onStartSequence, converting, scoringLeadId, enrichingLeadId, sequencingLeadId }: SavedTableProps) {
+const EMAIL_STATUS_STYLES: Record<string, string> = {
+  valid:     'text-emerald-600 bg-emerald-500/10',
+  invalid:   'text-red-600 bg-red-500/10',
+  suggested: 'text-yellow-600 bg-yellow-500/10',
+  unknown:   '',
+};
+
+function SavedTable({ leads, selectedIds, onToggleSelect, onToggleAll, onStatusChange, onNotesChange, onConvert, onDelete, onScoreLead, onEnrichLead, onStartSequence, onOpenDrawer, converting, scoringLeadId, enrichingLeadId, sequencingLeadId }: SavedTableProps) {
   const t = useTranslations('Leads');
   const STATUSES: LeadStatus[] = ['new', 'contacted', 'qualified', 'converted', 'rejected'];
   const statusLabels: Record<LeadStatus, string> = {
@@ -686,17 +862,21 @@ function SavedTable({ leads, selectedIds, onToggleSelect, onToggleAll, onStatusC
             <th className="text-left px-4 py-3 whitespace-nowrap">{t('colStatus')}</th>
             <th className="text-left px-4 py-3 whitespace-nowrap">{t('colScore')}</th>
             <th className="text-left px-4 py-3 whitespace-nowrap">Palier</th>
+            <th className="text-left px-4 py-3 whitespace-nowrap">Email</th>
             <th className="text-left px-4 py-3 whitespace-nowrap min-w-[180px]">{t('colNotes')}</th>
             <th className="text-left px-4 py-3 whitespace-nowrap">{t('colActions')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-outline-variant/5">
           {leads.map((lead) => (
-            <tr key={lead.id} className={cn(
-              'hover:bg-surface-container transition-colors group',
-              selectedIds.has(lead.id) ? 'bg-primary/5' : 'bg-surface-container-lowest',
-            )}>
-              <td className="px-4 py-3">
+            <tr key={lead.id}
+              className={cn(
+                'hover:bg-surface-container transition-colors group cursor-pointer',
+                selectedIds.has(lead.id) ? 'bg-primary/5' : 'bg-surface-container-lowest',
+              )}
+              onClick={() => onOpenDrawer(lead)}
+            >
+              <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                 <input type="checkbox"
                   checked={selectedIds.has(lead.id)}
                   onChange={() => onToggleSelect(lead.id)}
@@ -755,7 +935,7 @@ function SavedTable({ leads, selectedIds, onToggleSelect, onToggleAll, onStatusC
                 <span className="text-xs text-on-surface-variant truncate block">{lead.location ?? '—'}</span>
               </td>
               {/* Status (editable dropdown) */}
-              <td className="px-4 py-3">
+              <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                 <select
                   value={lead.status}
                   onChange={(e) => onStatusChange(lead.id, e.target.value)}
@@ -779,12 +959,25 @@ function SavedTable({ leads, selectedIds, onToggleSelect, onToggleAll, onStatusC
               <td className="px-4 py-3">
                 <TierBadge tier={(lead.tier ?? 'cold') as 'cold' | 'warm' | 'hot'} />
               </td>
+              {/* Email status */}
+              <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                {lead.email_status && lead.email_status !== 'unknown' ? (
+                  <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase', EMAIL_STATUS_STYLES[lead.email_status] ?? '')}>
+                    <span className="material-symbols-outlined text-[10px]">
+                      {lead.email_status === 'valid' ? 'check_circle' : lead.email_status === 'invalid' ? 'cancel' : 'help'}
+                    </span>
+                    {lead.email_status}
+                  </span>
+                ) : (
+                  <span className="text-on-surface-variant/40 text-xs">—</span>
+                )}
+              </td>
               {/* Notes */}
-              <td className="px-4 py-3">
+              <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                 <NotesEditor lead={lead} onSave={(notes) => onNotesChange(lead.id, notes)} />
               </td>
               {/* Actions */}
-              <td className="px-4 py-3">
+              <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center gap-1.5">
                   {lead.status === 'converted' ? (
                     <span className="text-[10px] text-tertiary font-bold flex items-center gap-1">
@@ -885,6 +1078,7 @@ function SearchTab({ savedUrlMap, onLeadSaved }: SearchTabProps) {
   const [sources, setSources] = useState<string[]>(['linkedin']);
   const [loading, setLoading] = useState(false);
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+  const [detailLead, setDetailLead] = useState<LeadResult | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -972,6 +1166,15 @@ function SearchTab({ savedUrlMap, onLeadSaved }: SearchTabProps) {
 
   return (
     <div className="px-8 pb-8 flex flex-col gap-4" style={{ minHeight: 'calc(100vh - 280px)' }}>
+      {detailLead && (
+        <SearchLeadDetail
+          lead={detailLead}
+          savedDbId={savedUrlMap.get(detailLead.url) ?? null}
+          saving={savingIds.has(detailLead.id)}
+          onSave={(l) => void handleSave(l, messages.find((m) => m.leads?.some((ld) => ld.id === l.id))?.queryUsed ?? '')}
+          onClose={() => setDetailLead(null)}
+        />
+      )}
       {/* Source controls */}
       <div className="bg-surface-container-lowest rounded-2xl px-5 py-3 shadow-sm flex items-center gap-4 flex-wrap">
         <span className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant shrink-0">{t('sourcesLabel')}</span>
@@ -1055,6 +1258,7 @@ function SearchTab({ savedUrlMap, onLeadSaved }: SearchTabProps) {
                         savedDbId={savedUrlMap.get(lead.url) ?? null}
                         saving={savingIds.has(lead.id)}
                         onSave={(l) => void handleSave(l, msg.queryUsed ?? '')}
+                        onOpen={(l) => setDetailLead(l)}
                       />
                     ))}
                   </div>
@@ -1129,6 +1333,8 @@ function SavedTab() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showExport, setShowExport] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [drawerLead, setDrawerLead] = useState<LeadRecord | null>(null);
+  const [batchEnriching, setBatchEnriching] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -1216,6 +1422,15 @@ function SavedTab() {
     }
   };
 
+  // Sync drawer when leads list refreshes
+  React.useEffect(() => {
+    if (drawerLead) {
+      const refreshed = leads.find((l) => l.id === drawerLead.id);
+      if (refreshed) setDrawerLead(refreshed);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads]);
+
   const handleStartSequence = async (id: string) => {
     setSequencingLeadId(id);
     try {
@@ -1227,6 +1442,24 @@ function SavedTab() {
       setSequencingLeadId(null);
     }
   };
+
+  const handleBatchEnrich = async () => {
+    const ids = selectedIds.size > 0 ? Array.from(selectedIds) : leads.map((l) => l.id);
+    if (ids.length === 0) return;
+    setBatchEnriching(true);
+    try {
+      const res = await leadsApi.batchEnrich(ids) as { enriched: number; total: number };
+      toast.success(`${res.enriched}/${res.total} lead(s) enrichi(s)`);
+      await reload();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de l\'enrichissement en lot');
+    } finally {
+      setBatchEnriching(false);
+    }
+  };
+
+  const handleOpenDrawer = (lead: LeadRecord) => setDrawerLead(lead);
+  const handleCloseDrawer = () => setDrawerLead(null);
 
   const STATUSES: LeadStatus[] = ['new', 'contacted', 'qualified', 'converted', 'rejected'];
   const statusLabels: Record<string, string> = {
@@ -1242,6 +1475,14 @@ function SavedTab() {
       )}
       {showImport && (
         <ImportModal onClose={() => setShowImport(false)} onImportSuccess={reload} />
+      )}
+      {drawerLead && (
+        <LeadDrawer
+          lead={drawerLead}
+          onClose={handleCloseDrawer}
+          onEnrich={handleEnrichLead}
+          onScore={handleScoreLead}
+        />
       )}
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -1270,6 +1511,14 @@ function SavedTab() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => void handleBatchEnrich()}
+            disabled={batchEnriching || leads.length === 0}
+            className="flex items-center gap-1.5 px-3 py-2 bg-secondary/10 hover:bg-secondary/20 text-secondary rounded-xl text-xs font-bold transition-all disabled:opacity-40"
+          >
+            <span className={cn('material-symbols-outlined text-[15px]', batchEnriching && 'animate-spin')}>auto_awesome</span>
+            {batchEnriching ? 'Enrichissement…' : `Enrichir${selectedIds.size > 0 ? ` (${selectedIds.size})` : ' tout'}`}
+          </button>
           <button
             onClick={() => setShowImport(true)}
             className="flex items-center gap-1.5 px-3 py-2 bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface rounded-xl text-xs font-bold transition-all"
@@ -1311,6 +1560,7 @@ function SavedTab() {
           onScoreLead={handleScoreLead}
           onEnrichLead={handleEnrichLead}
           onStartSequence={handleStartSequence}
+          onOpenDrawer={handleOpenDrawer}
           converting={converting}
           scoringLeadId={scoringLeadId}
           enrichingLeadId={enrichingLeadId}

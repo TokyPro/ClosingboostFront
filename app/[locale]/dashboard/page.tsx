@@ -181,6 +181,36 @@ const TeamMember = ({ name, role, deals, dealsLabel }: TeamMemberProps) => (
   </div>
 );
 
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-32 bg-surface-container-low rounded-2xl animate-pulse" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="lg:col-span-3 space-y-4">
+          <div className="h-6 bg-surface-container-high rounded-full w-40 animate-pulse" />
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-64 bg-surface-container-low rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div className="h-6 bg-surface-container-high rounded-full w-32 animate-pulse" />
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-16 bg-surface-container-low rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const DashboardPage = () => {
   const t = useTranslations('Dashboard');
   const tErr = useTranslations('Errors');
@@ -189,6 +219,7 @@ const DashboardPage = () => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!authUser?.id) return;
@@ -199,8 +230,10 @@ const DashboardPage = () => {
       setOpportunities(opps);
       setUser(u);
       setLoadError(null);
+      setLoading(false);
     }).catch((err: unknown) => {
       setLoadError(err instanceof Error ? err.message : tErr('loadFailed'));
+      setLoading(false);
     });
   }, [authUser?.id, tErr]);
 
@@ -253,6 +286,9 @@ const DashboardPage = () => {
               </Link>
             </div>
           </div>
+
+          {loading ? <DashboardSkeleton /> : (
+          <>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <MetricCard
@@ -378,6 +414,9 @@ const DashboardPage = () => {
               )}
             </div>
           </div>
+
+          </>
+          )}
         </section>
       </main>
     </div>

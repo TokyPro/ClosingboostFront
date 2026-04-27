@@ -9,7 +9,8 @@ import {
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { Sidebar } from '../../../components/Sidebar';
-import { copilotApi, opportunityApi, interactionApi } from '../../../lib/api';
+import { copilotApi, opportunityApi, interactionApi, ApiError } from '../../../lib/api';
+import { toast } from '../../../lib/toast';
 import { Interaction } from '../../../lib/types';
 import { cn } from '../../../lib/cn';
 import { useAuth } from '../../../lib/auth';
@@ -811,13 +812,20 @@ function CopilotInner() {
     try {
       const result = await copilotApi.generateQuote(requirements as Record<string, string | null | undefined>) as QuoteResult;
       setQuote(result);
-    } catch (err) {
-      setState(prev => ({ ...prev, error: err instanceof Error ? err.message : t('errorGeneric') }));
-    } finally {
+      } catch (err: unknown) {
+      if (err instanceof ApiError) {
+       if (err.status === 429) { // Assuming 429 for quota exhausted
+         toast.error('La génération de devis a échoué : votre quota LLM est épuisé. Veuillez réessayer plus tard ou contacter le support.');
+       } else {
+         toast.error(`Erreur lors de la génération du devis (${err.status}): ${err.message}`);
+       }
+      } else {
+       toast.error('Une erreur inattendue est survenue.');
+      }
+      } finally {
       setQuoteLoading(false);
-    }
-  };
-
+      }
+      };
   const handleSaveSession = async () => {
     if (!selectedOpportunityId || isSaving || isSaved) return;
     setIsSaving(true);
