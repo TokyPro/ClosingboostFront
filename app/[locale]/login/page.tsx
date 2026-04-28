@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '../../../lib/auth';
-import { cn } from '../../../lib/cn';
 import logo from '../../../images/logo-sary.png';
 
 type Mode = 'login' | 'register';
@@ -50,159 +49,361 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
-      {/* Ambient glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-3xl" />
-      </div>
+    <div className="auth-wrap" style={{ position: 'relative', zIndex: 1 }}>
 
-      <div className="relative w-full max-w-md">
-        {/* Card */}
-        <div className="bg-surface-container-lowest rounded-3xl shadow-2xl shadow-on-background/10 overflow-hidden">
-          {/* Header */}
-          <div className="px-8 pt-10 pb-6 text-center">
-            <div className="flex justify-center mb-5">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shadow-sm">
-                <Image src={logo} alt="SalesBoost AI" width={40} height={40} className="object-contain" priority />
-              </div>
-            </div>
-            <h1 className="font-headline font-black text-2xl text-on-surface tracking-tight">SalesBoost AI</h1>
-            <p className="text-xs text-on-surface-variant font-semibold uppercase tracking-[0.15em] mt-1">
-              The Digital Closing Executive
+      {/* ── Left: brand block ─────────────────────────────────────────────── */}
+      <div className="auth-brand-block">
+        {/* Logo mark */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 44, height: 44,
+            background: 'rgba(255,255,255,0.12)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Image src={logo} alt="SalesBoost AI" width={26} height={26} className="object-contain" priority />
+          </div>
+          <div>
+            <p style={{ fontFamily: 'Geist, var(--font-manrope), sans-serif', fontWeight: 700, fontSize: 22, letterSpacing: '-0.012em', color: '#fff' }}>
+              SalesBoost AI
+            </p>
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', opacity: 0.7, color: '#fff', marginTop: 3 }}>
+              An ETECH product
             </p>
           </div>
+        </div>
 
-          {/* Mode tabs */}
-          <div className="flex mx-8 mb-6 bg-surface-container-low rounded-xl p-1">
-            {(['login', 'register'] as Mode[]).map((m) => (
-              <button
-                key={m}
-                onClick={() => reset(m)}
-                className={cn(
-                  'flex-1 py-2.5 rounded-lg text-sm font-bold transition-all',
-                  mode === m
-                    ? 'bg-surface-container-lowest text-primary shadow-sm'
-                    : 'text-on-surface-variant hover:text-on-surface',
-                )}
-              >
-                {m === 'login' ? 'Connexion' : 'Inscription'}
-              </button>
-            ))}
-          </div>
+        {/* Headline */}
+        <div>
+          <h1 style={{
+            fontFamily: 'Geist, var(--font-manrope), sans-serif',
+            fontWeight: 700,
+            fontSize: 'clamp(36px, 4vw, 56px)',
+            lineHeight: 1.05,
+            letterSpacing: '-0.028em',
+            color: '#fff',
+            maxWidth: 480,
+          }}>
+            Forecast tomorrow&apos;s pipeline. Today.
+          </h1>
+          <p style={{ fontSize: 16, lineHeight: 1.55, color: 'rgba(255,255,255,0.78)', maxWidth: 460, marginTop: 16 }}>
+            Copilot drafts your call briefings, scores every deal, and tells you which conversations move the number this week.
+          </p>
+        </div>
 
-          {/* Success state (after register) */}
+        {/* Social proof */}
+        <div style={{ display: 'flex', gap: 32, color: 'rgba(255,255,255,0.72)', fontSize: 13, fontWeight: 500 }}>
+          {[
+            { value: '2,400+', label: 'revenue teams' },
+            { value: '$1.8B',  label: 'tracked pipeline' },
+            { value: '32%',    label: 'avg win-rate lift' },
+          ].map((stat) => (
+            <div key={stat.label}>
+              <span style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700, fontSize: 28, color: '#fff', display: 'block' }}>
+                {stat.value}
+              </span>
+              {stat.label}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Right: auth form ───────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 48,
+        position: 'relative',
+        background: 'var(--bg-page)',
+      }}>
+        <div style={{
+          width: '100%',
+          maxWidth: 440,
+          background: 'var(--bg-glass-strong)',
+          backdropFilter: 'blur(28px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(140%)',
+          border: '1px solid var(--border-glass)',
+          borderRadius: 'var(--radius-2xl)',
+          padding: 40,
+          boxShadow: 'var(--shadow-xl)',
+        }}>
+          {/* Success state */}
           {success ? (
-            <div className="px-8 pb-10 text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <span className="material-symbols-outlined text-[32px] text-primary">pending_actions</span>
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <div style={{
+                width: 64, height: 64,
+                borderRadius: 9999,
+                background: 'rgb(var(--accent-cobalt) / 0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 16px',
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--fg-cobalt)' }}>pending_actions</span>
               </div>
-              <h2 className="font-headline font-bold text-on-surface text-lg mb-2">Demande envoyée</h2>
-              <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
-                Votre inscription est en attente de validation par un administrateur. Vous recevrez l'accès une fois approuvé.
+              <h2 style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 8, color: 'var(--fg-1)' }}>
+                Demande envoyée
+              </h2>
+              <p style={{ fontSize: 14, color: 'var(--fg-2)', lineHeight: 1.6, marginBottom: 24 }}>
+                Votre inscription est en attente de validation par un administrateur. Vous recevrez l&apos;accès une fois approuvé.
               </p>
               <button
                 onClick={() => reset('login')}
-                className="text-primary font-bold text-sm hover:underline"
+                style={{ color: 'var(--fg-cobalt)', fontWeight: 600, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer' }}
               >
-                Retour à la connexion
+                ← Retour à la connexion
               </button>
             </div>
           ) : (
-            <form onSubmit={(e) => void handleSubmit(e)} className="px-8 pb-8 space-y-4">
-              {/* Error */}
-              {error && (
-                <div className="flex items-center gap-2 bg-error/10 text-error rounded-xl px-4 py-3 text-sm">
-                  <span className="material-symbols-outlined text-[16px] shrink-0">error</span>
-                  {error}
-                </div>
-              )}
+            <>
+              <h3 style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700, fontSize: 24, marginBottom: 6, color: 'var(--fg-1)' }}>
+                {mode === 'login' ? 'Bienvenue' : 'Créer un compte'}
+              </h3>
+              <p style={{ color: 'var(--fg-2)', fontSize: 13.5, marginBottom: 24 }}>
+                {mode === 'login' ? 'Connectez-vous à votre espace de travail.' : 'Créez votre compte SalesBoost AI.'}
+              </p>
 
-              {/* Email */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-                  Email
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">
-                    mail
-                  </span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="vous@exemple.com"
-                    required
-                    autoComplete="email"
-                    className="w-full bg-surface-container-low rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/25 transition-all placeholder:text-on-surface-variant/40"
-                  />
-                </div>
+              {/* Mode tabs */}
+              <div style={{
+                display: 'flex',
+                background: 'var(--bg-card-low)',
+                borderRadius: 10,
+                padding: 4,
+                marginBottom: 24,
+              }}>
+                {(['login', 'register'] as Mode[]).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => reset(m)}
+                    style={{
+                      flex: 1,
+                      padding: '9px 0',
+                      background: mode === m ? 'var(--bg-card)' : 'transparent',
+                      color: mode === m ? 'var(--fg-1)' : 'var(--fg-2)',
+                      border: 'none',
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      borderRadius: 6,
+                      boxShadow: mode === m ? 'var(--shadow-sm)' : 'none',
+                      transition: 'all 180ms',
+                    }}
+                  >
+                    {m === 'login' ? 'Connexion' : 'Inscription'}
+                  </button>
+                ))}
               </div>
 
-              {/* Password */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-                  Mot de passe
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">
-                    lock
-                  </span>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                    className="w-full bg-surface-container-low rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/25 transition-all placeholder:text-on-surface-variant/40"
-                  />
-                </div>
-              </div>
+              <form onSubmit={(e) => void handleSubmit(e)}>
+                {/* Error */}
+                {error && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: 'rgb(var(--color-error) / 0.10)',
+                    color: 'var(--fg-error)',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    fontSize: 13,
+                    marginBottom: 14,
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 16, flexShrink: 0 }}>error</span>
+                    {error}
+                  </div>
+                )}
 
-              {/* Confirm password (register only) */}
-              {mode === 'register' && (
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-                    Confirmer le mot de passe
+                {/* Email field */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{
+                    fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
+                    letterSpacing: '0.15em', color: 'var(--fg-2)', display: 'block', marginBottom: 8,
+                  }}>
+                    Email
                   </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">
-                      lock_reset
-                    </span>
+                  <div style={{ position: 'relative' }}>
+                    <span className="material-symbols-outlined" style={{
+                      position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                      color: 'var(--fg-2)', fontSize: 18,
+                    }}>mail</span>
                     <input
-                      type="password"
-                      value={confirm}
-                      onChange={(e) => setConfirm(e.target.value)}
-                      placeholder="••••••••"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="vous@exemple.com"
                       required
-                      autoComplete="new-password"
-                      className="w-full bg-surface-container-low rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/25 transition-all placeholder:text-on-surface-variant/40"
+                      autoComplete="email"
+                      style={{
+                        width: '100%',
+                        background: 'var(--bg-glass)',
+                        border: '1px solid var(--border-glass)',
+                        borderRadius: 10,
+                        padding: '12px 14px 12px 42px',
+                        fontSize: 14,
+                        color: 'var(--fg-1)',
+                        outline: 'none',
+                        transition: 'all 180ms',
+                        boxSizing: 'border-box',
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = 'var(--fg-cobalt)';
+                        e.target.style.boxShadow = '0 0 0 3px rgb(59 91 255 / 0.15)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = 'var(--border-glass)';
+                        e.target.style.boxShadow = 'none';
+                      }}
                     />
                   </div>
                 </div>
-              )}
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-60 disabled:scale-100 text-sm mt-2"
-              >
-                {loading ? (
-                  <><span className="material-symbols-outlined text-[18px] animate-spin">autorenew</span>
-                  {mode === 'login' ? 'Connexion…' : 'Inscription…'}</>
-                ) : (
-                  <><span className="material-symbols-outlined text-[18px]">
-                    {mode === 'login' ? 'login' : 'person_add'}
-                  </span>
-                  {mode === 'login' ? 'Se connecter' : "S'inscrire"}</>
+                {/* Password field */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{
+                    fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
+                    letterSpacing: '0.15em', color: 'var(--fg-2)', display: 'block', marginBottom: 8,
+                  }}>
+                    Mot de passe
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span className="material-symbols-outlined" style={{
+                      position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                      color: 'var(--fg-2)', fontSize: 18,
+                    }}>lock</span>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                      style={{
+                        width: '100%',
+                        background: 'var(--bg-glass)',
+                        border: '1px solid var(--border-glass)',
+                        borderRadius: 10,
+                        padding: '12px 14px 12px 42px',
+                        fontSize: 14,
+                        color: 'var(--fg-1)',
+                        outline: 'none',
+                        transition: 'all 180ms',
+                        boxSizing: 'border-box',
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = 'var(--fg-cobalt)';
+                        e.target.style.boxShadow = '0 0 0 3px rgb(59 91 255 / 0.15)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = 'var(--border-glass)';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Confirm password */}
+                {mode === 'register' && (
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{
+                      fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
+                      letterSpacing: '0.15em', color: 'var(--fg-2)', display: 'block', marginBottom: 8,
+                    }}>
+                      Confirmer le mot de passe
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <span className="material-symbols-outlined" style={{
+                        position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                        color: 'var(--fg-2)', fontSize: 18,
+                      }}>lock_reset</span>
+                      <input
+                        type="password"
+                        value={confirm}
+                        onChange={(e) => setConfirm(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        autoComplete="new-password"
+                        style={{
+                          width: '100%',
+                          background: 'var(--bg-glass)',
+                          border: '1px solid var(--border-glass)',
+                          borderRadius: 10,
+                          padding: '12px 14px 12px 42px',
+                          fontSize: 14,
+                          color: 'var(--fg-1)',
+                          outline: 'none',
+                          transition: 'all 180ms',
+                          boxSizing: 'border-box',
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = 'var(--fg-cobalt)';
+                          e.target.style.boxShadow = '0 0 0 3px rgb(59 91 255 / 0.15)';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = 'var(--border-glass)';
+                          e.target.style.boxShadow = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
                 )}
-              </button>
-            </form>
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    padding: '13px 20px',
+                    background: 'var(--gradient-primary-cta)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 10,
+                    fontFamily: 'Geist, var(--font-manrope), sans-serif',
+                    fontWeight: 600,
+                    fontSize: 13.5,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    boxShadow: 'var(--shadow-cta)',
+                    marginTop: 8,
+                    opacity: loading ? 0.6 : 1,
+                    transition: 'all 180ms',
+                  }}
+                  onMouseEnter={(e) => { if (!loading) (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+                >
+                  {loading ? (
+                    <>
+                      <span className="material-symbols-outlined animate-spin" style={{ fontSize: 18 }}>autorenew</span>
+                      {mode === 'login' ? 'Connexion…' : 'Inscription…'}
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                        {mode === 'login' ? 'login' : 'person_add'}
+                      </span>
+                      {mode === 'login' ? 'Se connecter' : "S'inscrire"}
+                      <span className="material-symbols-outlined" style={{ fontSize: 16, marginLeft: 4 }}>arrow_forward</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </>
           )}
         </div>
 
-        <p className="text-center text-[11px] text-on-surface-variant/50 mt-6">
+        <p style={{
+          position: 'absolute',
+          bottom: 24,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          fontSize: 11,
+          color: 'var(--fg-3)',
+          whiteSpace: 'nowrap',
+        }}>
           © {new Date().getFullYear()} SalesBoost AI — All rights reserved
         </p>
       </div>

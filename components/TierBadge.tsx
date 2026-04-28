@@ -1,4 +1,5 @@
 'use client';
+import type { CSSProperties } from 'react';
 import { cn } from '../lib/cn';
 
 type Tier = 'cold' | 'warm' | 'hot';
@@ -9,43 +10,42 @@ interface TierBadgeProps {
   size?: 'sm' | 'md';
 }
 
-const TIER_CONFIG: Record<Tier, { label: string; labelFr: string; icon: string; classes: string }> = {
+const TIER_CONFIG: Record<Tier, { label: string; icon: string; style: CSSProperties }> = {
   cold: {
-    label: 'Cold',
-    labelFr: 'Froid',
+    label: 'Froid',
     icon: 'ac_unit',
-    classes: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    style: { background: 'rgb(var(--accent-cyan) / 0.14)', color: 'var(--fg-cyan)' },
   },
   warm: {
-    label: 'Warm',
-    labelFr: 'Tiède',
+    label: 'Tiède',
     icon: 'wb_sunny',
-    classes: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    style: { background: 'rgb(var(--accent-amber) / 0.14)', color: 'var(--fg-amber)' },
   },
   hot: {
-    label: 'Hot',
-    labelFr: 'Chaud',
+    label: 'Chaud',
     icon: 'local_fire_department',
-    classes: 'bg-red-500/10 text-red-600 dark:text-red-400',
+    style: { background: 'rgb(var(--color-error) / 0.12)', color: 'var(--fg-error)' },
   },
 };
 
 export function TierBadge({ tier, score, size = 'sm' }: TierBadgeProps) {
   const config = TIER_CONFIG[tier] ?? TIER_CONFIG.cold;
   return (
-    <span className={cn(
-      'inline-flex items-center gap-1 rounded-full font-bold uppercase tracking-wide',
-      size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs',
-      config.classes,
-    )}>
+    <span
+      style={{ ...config.style, borderRadius: 9999, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.10em' }}
+      className={cn(
+        'inline-flex items-center gap-1',
+        size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs',
+      )}
+    >
       <span
         className={cn('material-symbols-outlined', size === 'sm' ? 'text-[11px]' : 'text-[14px]')}
         style={{ fontVariationSettings: "'FILL' 1" }}
       >
         {config.icon}
       </span>
-      {config.labelFr}
-      {score !== undefined && <span className="ml-1 opacity-70">{Math.round(score)}</span>}
+      {config.label}
+      {score !== undefined && <span style={{ opacity: 0.7, marginLeft: 2 }}>{Math.round(score)}</span>}
     </span>
   );
 }

@@ -17,6 +17,9 @@ import { toast } from '../../../lib/toast';
 import { cn, generateUUID } from '../../../lib/cn';
 import { useAuth } from '../../../lib/auth';
 import { LinkedInIcon, NotionIcon, AirtableIcon } from '../../../components/icons/BrandIcons';
+import { Pagination } from '../../../components/Pagination';
+
+const PAGE_SIZE = 10;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -147,37 +150,90 @@ interface SearchCardProps {
 function SearchCard({ lead, savedDbId, saving, onSave, onOpen }: SearchCardProps) {
   const t = useTranslations('Leads');
   const initials = lead.avatar_initials;
-  const displayName = lead.name ?? lead.company ?? '—';
   const isSaved = savedDbId !== null;
+
+  // Priority: phone > email > LinkedIn URL
+  const hasPhone = Boolean(lead.contact_phone);
+  const hasEmail = Boolean(lead.contact_email);
+  const hasLinkedIn = lead.source.startsWith('linkedin');
 
   return (
     <article
       onClick={() => onOpen(lead)}
-      className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-200 flex flex-col gap-3.5 cursor-pointer group"
+      className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-200 flex flex-col gap-3 cursor-pointer group"
     >
+      {/* Header: company + score */}
       <div className="flex items-start gap-3">
-        <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center font-headline font-black text-base shrink-0', avatarColor(initials))}>
+        <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center font-headline font-black text-sm shrink-0', avatarColor(initials))}>
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <p className="font-bold text-sm text-on-surface truncate leading-tight group-hover:text-primary transition-colors">{displayName}</p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-bold text-sm text-on-surface leading-tight group-hover:text-primary transition-colors truncate">
+              {lead.company ?? lead.name ?? '—'}
+            </p>
             <ScoreBadge score={lead.relevance_score} />
           </div>
-          {lead.job_title && <p className="text-xs text-on-surface-variant mt-0.5 truncate">{lead.job_title}</p>}
-          {lead.company && lead.name && <p className="text-xs text-primary/80 font-semibold mt-0.5 truncate">{lead.company}</p>}
+          {lead.name && (
+            <p className="text-xs text-on-surface-variant mt-0.5 truncate">
+              {lead.name}{lead.job_title ? <span className="opacity-60"> · {lead.job_title}</span> : null}
+            </p>
+          )}
+          {!lead.name && lead.job_title && (
+            <p className="text-xs text-on-surface-variant mt-0.5 truncate">{lead.job_title}</p>
+          )}
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
+
+      {/* Company description */}
+      {lead.summary && (
+        <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-2">{lead.summary}</p>
+      )}
+
+      {/* Contact info — phone > email > LinkedIn */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {hasPhone && (
+          <a
+            href={`tel:${lead.contact_phone}`}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-500/10 text-green-700 dark:text-green-400 rounded-lg text-[10px] font-bold hover:bg-green-500/20 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[12px]">phone</span>
+            {lead.contact_phone}
+          </a>
+        )}
+        {hasEmail && (
+          <a
+            href={`mailto:${lead.contact_email}`}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-colors max-w-[180px] truncate"
+          >
+            <span className="material-symbols-outlined text-[12px]">mail</span>
+            {lead.contact_email}
+          </a>
+        )}
+        {!hasPhone && !hasEmail && hasLinkedIn && (
+          <a
+            href={lead.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#0A66C2]/10 text-[#0A66C2] rounded-lg text-[10px] font-bold hover:bg-[#0A66C2]/20 transition-colors"
+          >
+            <LinkedInIcon size={12} />
+            Profil LinkedIn
+          </a>
+        )}
         <SourceBadge source={lead.source} />
         {lead.location && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-on-surface-variant">
+          <span className="inline-flex items-center gap-1 text-[10px] text-on-surface-variant ml-auto shrink-0">
             <span className="material-symbols-outlined text-[11px]">location_on</span>
             {lead.location}
           </span>
         )}
       </div>
-      {lead.summary && <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-2 flex-1">{lead.summary}</p>}
+
+      {/* Actions */}
       <div className="flex gap-2 mt-auto pt-1">
         <a
           href={lead.url}
@@ -286,14 +342,39 @@ function SearchLeadDetail({ lead, savedDbId, saving, onSave, onClose }: SearchLe
             </p>
           </section>
 
-          {/* Informations */}
+          {/* Entreprise & Contact */}
           <section className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Informations</h3>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Entreprise & Contact</h3>
             <div className="space-y-2">
               {lead.company && (
                 <div className="flex items-center gap-2.5 text-sm">
                   <span className="material-symbols-outlined text-[17px] text-on-surface-variant shrink-0">business</span>
-                  <span className="text-on-surface font-medium">{lead.company}</span>
+                  <span className="text-on-surface font-semibold">{lead.company}</span>
+                </div>
+              )}
+              {lead.name && (
+                <div className="flex items-center gap-2.5 text-sm">
+                  <span className="material-symbols-outlined text-[17px] text-on-surface-variant shrink-0">person</span>
+                  <span className="text-on-surface">
+                    {lead.name}
+                    {lead.job_title && <span className="text-on-surface-variant text-xs"> · {lead.job_title}</span>}
+                  </span>
+                </div>
+              )}
+              {lead.contact_phone && (
+                <div className="flex items-center gap-2.5 text-sm">
+                  <span className="material-symbols-outlined text-[17px] text-on-surface-variant shrink-0">phone</span>
+                  <a href={`tel:${lead.contact_phone}`} className="text-green-700 dark:text-green-400 hover:underline font-medium">
+                    {lead.contact_phone}
+                  </a>
+                </div>
+              )}
+              {lead.contact_email && (
+                <div className="flex items-center gap-2.5 text-sm">
+                  <span className="material-symbols-outlined text-[17px] text-on-surface-variant shrink-0">mail</span>
+                  <a href={`mailto:${lead.contact_email}`} className="text-primary hover:underline break-all text-xs">
+                    {lead.contact_email}
+                  </a>
                 </div>
               )}
               {lead.location && (
@@ -848,7 +929,7 @@ function SavedTable({ leads, selectedIds, onToggleSelect, onToggleAll, onStatusC
           <tr className="bg-surface-container-low text-on-surface-variant text-[11px] font-bold uppercase tracking-widest">
             <th className="px-4 py-3">
               <input type="checkbox"
-                checked={leads.length > 0 && selectedIds.size === leads.length}
+                checked={leads.length > 0 && leads.every((l) => selectedIds.has(l.id))}
                 onChange={onToggleAll}
                 className="rounded accent-primary cursor-pointer"
               />
@@ -1099,6 +1180,8 @@ function SearchTab({ savedUrlMap, onLeadSaved }: SearchTabProps) {
         company_name: lead.company,
         contact_name: lead.name,
         contact_title: lead.job_title,
+        contact_email: lead.contact_email,
+        contact_phone: lead.contact_phone,
         activity_sector: null,
         linkedin_url: lead.source.startsWith('linkedin') ? lead.url : null,
         website_url: (lead.source === 'web' || lead.source === 'datagouv') ? lead.url : null,
@@ -1326,6 +1409,7 @@ function SavedTab() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [page, setPage] = useState(1);
   const [converting, setConverting] = useState<string | null>(null);
   const [scoringLeadId, setScoringLeadId] = useState<string | null>(null);
   const [enrichingLeadId, setEnrichingLeadId] = useState<string | null>(null);
@@ -1339,13 +1423,17 @@ function SavedTab() {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await leadsApi.listSaved({ status: statusFilter || undefined, limit: 100 }) as LeadsListResponse;
+      const res = await leadsApi.listSaved({
+        status: statusFilter || undefined,
+        page,
+        limit: PAGE_SIZE,
+      }) as LeadsListResponse;
       setLeads(res.leads);
       setTotal(res.total);
     } catch {
       toast.error('Erreur lors du chargement des leads');
     } finally { setLoading(false); }
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   useEffect(() => { void reload(); }, [reload]);
 
@@ -1378,9 +1466,10 @@ function SavedTab() {
     try {
       await leadsApi.deleteSaved(id);
       toast.success(t('deleteSuccess'));
-      setLeads((prev) => prev.filter((l) => l.id !== id));
       setSelectedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
-      setTotal((prev) => prev - 1);
+      const maxPage = Math.max(1, Math.ceil((total - 1) / PAGE_SIZE));
+      if (page > maxPage) setPage(maxPage); // triggers reload via useEffect
+      else void reload();
     } catch { toast.error('Erreur lors de la suppression'); }
   };
 
@@ -1393,7 +1482,14 @@ function SavedTab() {
   };
 
   const handleToggleAll = () => {
-    setSelectedIds((prev) => prev.size === leads.length ? new Set() : new Set(leads.map((l) => l.id)));
+    const visibleIds = leads.map((l) => l.id);
+    const allVisible = visibleIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      if (allVisible) visibleIds.forEach((id) => n.delete(id));
+      else visibleIds.forEach((id) => n.add(id));
+      return n;
+    });
   };
 
   const handleScoreLead = async (id: string) => {
@@ -1497,7 +1593,7 @@ function SavedTab() {
             {(['', ...STATUSES] as string[]).map((s) => (
               <button
                 key={s}
-                onClick={() => setStatusFilter(s)}
+                onClick={() => { setStatusFilter(s); setPage(1); }}
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all',
                   statusFilter === s
@@ -1548,24 +1644,27 @@ function SavedTab() {
           ))}
         </div>
       ) : (
-        <SavedTable
-          leads={leads}
-          selectedIds={selectedIds}
-          onToggleSelect={handleToggleSelect}
-          onToggleAll={handleToggleAll}
-          onStatusChange={handleStatusChange}
-          onNotesChange={handleNotesChange}
-          onConvert={handleConvert}
-          onDelete={handleDelete}
-          onScoreLead={handleScoreLead}
-          onEnrichLead={handleEnrichLead}
-          onStartSequence={handleStartSequence}
-          onOpenDrawer={handleOpenDrawer}
-          converting={converting}
-          scoringLeadId={scoringLeadId}
-          enrichingLeadId={enrichingLeadId}
-          sequencingLeadId={sequencingLeadId}
-        />
+        <>
+          <SavedTable
+            leads={leads}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+            onToggleAll={handleToggleAll}
+            onStatusChange={handleStatusChange}
+            onNotesChange={handleNotesChange}
+            onConvert={handleConvert}
+            onDelete={handleDelete}
+            onScoreLead={handleScoreLead}
+            onEnrichLead={handleEnrichLead}
+            onStartSequence={handleStartSequence}
+            onOpenDrawer={handleOpenDrawer}
+            converting={converting}
+            scoringLeadId={scoringLeadId}
+            enrichingLeadId={enrichingLeadId}
+            sequencingLeadId={sequencingLeadId}
+          />
+          <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
+        </>
       )}
     </div>
   );
@@ -1588,7 +1687,7 @@ export default function LeadsPage() {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar />
         <section className="flex-1 overflow-y-auto custom-scrollbar">
           {/* Page header */}

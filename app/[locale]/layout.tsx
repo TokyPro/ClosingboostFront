@@ -14,14 +14,14 @@ const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
-  weight: ['400', '500', '600'],
+  weight: ['400', '500', '600', '700'],
 });
 
 const manrope = Manrope({
   subsets: ['latin'],
   variable: '--font-manrope',
   display: 'swap',
-  weight: ['700', '800'],
+  weight: ['600', '700', '800'],
 });
 
 export const metadata: Metadata = {
@@ -46,6 +46,13 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <html lang={locale} className={`${inter.variable} ${manrope.variable}`} suppressHydrationWarning>
       <head>
+        {/* Geist font — Aurora Glass design system */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap"
+          rel="stylesheet"
+        />
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"
@@ -54,6 +61,9 @@ export default async function LocaleLayout({ children, params }: Props) {
         <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');if(t==='dark')document.documentElement.classList.add('dark');})();` }} />
       </head>
       <body className="bg-background font-body text-on-surface antialiased overflow-hidden">
+        {/* Aurora mesh background — fixed, behind all content */}
+        <div aria-hidden="true" className="aurora-bg" />
+
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             <AuthProvider locale={locale}>

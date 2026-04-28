@@ -10,10 +10,10 @@ import logo from '../images/logo.png';
 
 const NAV_ITEMS = [
   { icon: 'dashboard',       key: 'dashboard',    href: '/dashboard' },
-  { icon: 'monetization_on', key: 'opportunities', href: '/opportunities' },
   { icon: 'person_search',   key: 'leads',         href: '/leads' },
+  { icon: 'monetization_on', key: 'opportunities', href: '/opportunities' },
   { icon: 'account_tree',    key: 'pipeline',      href: '/pipeline' },
-  { icon: 'smart_toy',       key: 'copilot',       href: '/copilot' },
+  { icon: 'auto_awesome',    key: 'copilot',       href: '/copilot' },
   { icon: 'settings',        key: 'admin',         href: '/admin' },
   { icon: 'contact_support', key: 'support',       href: '/support' },
 ] as const;
@@ -39,9 +39,15 @@ export const Sidebar = () => {
       />
 
       <aside
+        style={{
+          background: 'var(--bg-glass)',
+          backdropFilter: 'blur(28px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(140%)',
+          borderRight: '1px solid var(--border-glass)',
+        }}
         className={cn(
           'fixed md:relative inset-y-0 left-0 z-50',
-          'flex flex-col h-screen shrink-0 bg-surface-container-low',
+          'flex flex-col h-screen shrink-0',
           'will-change-[width,transform]',
           mounted ? 'transition-[width,transform] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]' : '',
           collapsed ? 'md:w-[68px]' : 'md:w-64',
@@ -53,11 +59,11 @@ export const Sidebar = () => {
         <button
           onClick={toggleCollapsed}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          style={{ background: 'var(--bg-glass-strong)', border: '1px solid var(--border-glass)' }}
           className={cn(
             'absolute -right-3 top-[72px] z-10 hidden md:flex',
-            'h-6 w-6 items-center justify-center rounded-full',
-            'bg-surface-container-highest shadow-md border border-outline-variant/20',
-            'text-on-surface-variant hover:bg-primary hover:text-on-primary',
+            'h-6 w-6 items-center justify-center rounded-full shadow-md',
+            'text-on-surface-variant hover:text-on-surface',
             'transition-all duration-200 hover:scale-110',
           )}
         >
@@ -71,34 +77,66 @@ export const Sidebar = () => {
           </span>
         </button>
 
-        {/* Logo */}
+        {/* Brand block */}
         <div
           className={cn(
-            'flex flex-col items-center gap-2 px-3 pt-6 pb-4 mb-1 overflow-hidden',
-            !collapsed && 'px-5',
+            'flex items-center gap-3 px-3 pt-5 pb-4 mb-1 overflow-hidden',
+            !collapsed && 'px-4',
           )}
         >
-          <div className={cn(
-            'shrink-0 transition-all duration-300 hover:scale-105',
-            collapsed ? 'w-11 h-11' : 'w-[72px] h-[72px]',
-          )}>
-            <Image src={logo} alt="SalesBoost AI" width={72} height={72} className="object-contain w-full h-full" priority />
-          </div>
+          {/* Brand mark */}
           <div
+            style={{
+              background: 'var(--gradient-primary-cta)',
+              boxShadow: 'var(--shadow-glow-cobalt)',
+            }}
             className={cn(
-              'overflow-hidden whitespace-nowrap text-center',
-              'transition-[opacity,max-height] duration-300',
-              collapsed ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-20 opacity-100',
+              'shrink-0 flex items-center justify-center rounded-[12px] transition-all duration-300',
+              collapsed ? 'w-11 h-11' : 'w-11 h-11',
             )}
           >
-            <p className="font-headline font-black text-base text-primary leading-tight tracking-tight">
-              SalesBoost AI
+            <Image
+              src={logo}
+              alt="ETECH"
+              width={34}
+              height={34}
+              className="object-contain w-[30px] h-[30px]"
+              priority
+            />
+          </div>
+
+          {/* Brand text */}
+          <div
+            className={cn(
+              'overflow-hidden whitespace-nowrap',
+              'transition-[opacity,max-width] duration-300',
+              collapsed ? 'max-w-0 opacity-0 pointer-events-none' : 'max-w-[160px] opacity-100',
+            )}
+          >
+            <p
+              style={{ letterSpacing: '-0.012em', lineHeight: 1.1, fontSize: 17 }}
+              className="font-headline font-bold text-on-surface"
+            >
+              SalesBoost
             </p>
-            <p className="font-body text-[9px] uppercase tracking-[0.12em] text-on-surface-variant font-semibold leading-tight mt-0.5">
-              {t('brandTagline')}
+            <p
+              style={{ fontSize: 11, letterSpacing: '0.14em', marginTop: 2, fontWeight: 700 }}
+              className="font-body uppercase text-on-surface-variant"
+            >
+              by <span style={{ color: 'var(--fg-cobalt)' }}>ETECH</span>
             </p>
           </div>
         </div>
+
+        {/* Nav section label */}
+        {!collapsed && (
+          <p
+            style={{ fontSize: 9, letterSpacing: '0.22em', paddingLeft: 16, paddingBottom: 6, paddingTop: 4 }}
+            className="font-body font-semibold uppercase text-on-surface-variant/50"
+          >
+            Workspace
+          </p>
+        )}
 
         {/* Nav items */}
         <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden custom-scrollbar">
@@ -110,55 +148,72 @@ export const Sidebar = () => {
                 href={item.href}
                 onClick={closeMobile}
                 title={collapsed ? t(item.key) : undefined}
-                style={{ animationDelay: `${i * 30}ms` }}
+                style={{
+                  animationDelay: `${i * 30}ms`,
+                  ...(isActive ? {
+                    background: 'var(--bg-glass-strong)',
+                    boxShadow: 'var(--shadow-sm), inset 0 0 0 1px var(--border-glass)',
+                  } : {}),
+                }}
                 className={cn(
-                  'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl',
+                  'group relative flex items-center gap-3 px-3 py-2.5 rounded-[10px]',
                   'font-medium overflow-hidden transition-all duration-200',
                   collapsed ? 'justify-center' : '',
                   isActive
-                    ? 'bg-surface-container-lowest text-primary shadow-sm'
-                    : 'text-on-surface-variant hover:text-primary hover:bg-surface-container',
+                    ? 'text-on-surface font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface',
                 )}
+                onMouseEnter={!isActive ? (e) => {
+                  (e.currentTarget as HTMLElement).style.background = 'var(--bg-glass-strong)';
+                } : undefined}
+                onMouseLeave={!isActive ? (e) => {
+                  (e.currentTarget as HTMLElement).style.background = '';
+                } : undefined}
               >
-                {/* Active left indicator bar */}
+                {/* Active left indicator — gradient line */}
                 <span
+                  style={isActive ? {
+                    background: 'var(--gradient-primary-cta)',
+                    boxShadow: '0 0 12px rgb(59 91 255 / 0.6)',
+                  } : {}}
                   className={cn(
-                    'absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full bg-primary',
+                    'absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full',
                     'transition-[height,opacity] duration-300',
-                    isActive ? 'h-5 opacity-100' : 'h-0 opacity-0',
+                    isActive ? 'h-[22px] opacity-100' : 'h-0 opacity-0',
                   )}
                 />
 
                 <span
                   className={cn(
-                    'material-symbols-outlined text-[20px] shrink-0 transition-all duration-200',
-                    isActive
-                      ? 'text-primary scale-110'
-                      : 'text-on-surface-variant group-hover:scale-105',
+                    'material-symbols-outlined text-[19px] shrink-0 transition-all duration-200',
+                    isActive ? 'scale-[1.08]' : 'group-hover:scale-105',
                   )}
-                  style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+                  style={{
+                    fontVariationSettings: isActive ? "'FILL' 1, 'wght' 500" : "'FILL' 0, 'wght' 400",
+                    color: isActive ? 'var(--fg-cobalt)' : undefined,
+                  }}
                 >
                   {item.icon}
                 </span>
 
                 <span
                   className={cn(
-                    'font-label text-sm tracking-tight whitespace-nowrap',
+                    'font-label text-[13.5px] tracking-tight whitespace-nowrap',
                     'transition-[opacity,max-width] duration-300',
                     collapsed ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100',
-                    isActive ? 'font-bold' : '',
                   )}
                 >
                   {t(item.key)}
                 </span>
 
-                {/* Tooltip shown only when collapsed */}
+                {/* Tooltip when collapsed */}
                 {collapsed && (
                   <span
+                    style={{ background: 'var(--bg-card-high)', border: '1px solid var(--border-glass)' }}
                     className={cn(
                       'pointer-events-none absolute left-full ml-3 z-50',
-                      'px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap',
-                      'bg-inverse-surface text-inverse-on-surface shadow-lg',
+                      'px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shadow-lg',
+                      'text-on-surface',
                       'opacity-0 -translate-x-2 scale-95',
                       'group-hover:opacity-100 group-hover:translate-x-0 group-hover:scale-100',
                       'transition-[opacity,transform] duration-150',
@@ -172,41 +227,53 @@ export const Sidebar = () => {
           })}
         </nav>
 
-        {/* User + Logout */}
-        <div className="px-2 py-3 border-t border-outline-variant/10 space-y-1">
-          {/* User info */}
+        {/* Bottom: user + logout */}
+        <div className="px-2 py-3 space-y-1" style={{ borderTop: '1px solid var(--border-glass)' }}>
           {user && !collapsed && (
-            <div className="px-3 py-2 rounded-xl bg-surface-container/50">
+            <div
+              style={{ background: 'var(--bg-glass-strong)', border: '1px solid var(--border-glass)' }}
+              className="px-3 py-2 rounded-[10px] mb-1"
+            >
               <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant truncate">
                 {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
               </p>
               <p className="text-xs text-on-surface font-medium truncate mt-0.5">{user.email}</p>
             </div>
           )}
+
           <button
             onClick={logout}
             title={collapsed ? t('logOut') : undefined}
             className={cn(
-              'group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl overflow-hidden',
-              'text-on-surface-variant hover:text-error hover:bg-error/10',
-              'transition-all duration-200',
+              'group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] overflow-hidden',
+              'text-on-surface-variant hover:text-error transition-all duration-200',
               collapsed ? 'justify-center' : '',
             )}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = 'rgba(186, 26, 26, 0.08)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '';
+            }}
           >
-            <span className="material-symbols-outlined text-[20px] shrink-0 transition-all duration-200 group-hover:scale-105">
+            <span className="material-symbols-outlined text-[19px] shrink-0 transition-all duration-200 group-hover:scale-105">
               logout
             </span>
             <span
               className={cn(
-                'font-label text-sm tracking-tight whitespace-nowrap',
+                'font-label text-[13.5px] tracking-tight whitespace-nowrap',
                 'transition-[opacity,max-width] duration-300',
                 collapsed ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100',
               )}
             >
               {t('logOut')}
             </span>
+
             {collapsed && (
-              <span className="pointer-events-none absolute left-full ml-3 z-50 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-inverse-surface text-inverse-on-surface shadow-lg opacity-0 -translate-x-2 scale-95 group-hover:opacity-100 group-hover:translate-x-0 group-hover:scale-100 transition-[opacity,transform] duration-150">
+              <span
+                style={{ background: 'var(--bg-card-high)', border: '1px solid var(--border-glass)' }}
+                className="pointer-events-none absolute left-full ml-3 z-50 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shadow-lg text-on-surface opacity-0 -translate-x-2 scale-95 group-hover:opacity-100 group-hover:translate-x-0 group-hover:scale-100 transition-[opacity,transform] duration-150"
+              >
                 {t('logOut')}
               </span>
             )}

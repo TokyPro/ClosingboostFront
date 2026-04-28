@@ -56,32 +56,86 @@ export const TopBar = ({ title, userName, userRole }: TopBarProps) => {
     setSearchExpanded(false);
   };
 
+  /* Shared icon-button style */
+  const iconBtnStyle = {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    background: 'transparent',
+    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    color: 'var(--fg-2)',
+    transition: 'all 180ms',
+  } as const;
+
   return (
-    <header className="relative w-full sticky top-0 z-30 bg-surface-container-lowest/90 backdrop-blur-xl border-b border-outline-variant/10 flex items-center justify-between px-4 md:px-6 py-3 gap-3">
-      {/* Left: hamburger (mobile) + title + search */}
+    <header
+      style={{
+        height: 60,
+        background: 'var(--bg-glass)',
+        backdropFilter: 'blur(24px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+        borderBottom: '1px solid var(--border-glass)',
+      }}
+      className="relative w-full sticky top-0 z-30 flex items-center justify-between px-4 md:px-7 gap-3"
+    >
+      {/* Left: hamburger + live pill + search */}
       <div className="flex items-center gap-3 min-w-0">
         {/* Mobile hamburger */}
         <button
           onClick={openMobile}
           aria-label="Open navigation"
-          className="md:hidden p-2 -ml-1 shrink-0 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all duration-200 active:scale-90"
+          style={iconBtnStyle}
+          className="md:hidden hover:!bg-[var(--bg-glass-strong)] hover:text-on-surface active:scale-90 transition-all"
         >
           <span className="material-symbols-outlined text-[22px]">menu</span>
         </button>
 
+        {/* Live sync pill */}
+        <span
+          style={{ background: 'rgb(var(--accent-cobalt) / 0.10)', color: 'var(--fg-cobalt)' }}
+          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider"
+        >
+          <span
+            style={{ width: 6, height: 6, borderRadius: 99, background: 'currentColor', boxShadow: '0 0 6px currentColor' }}
+            className="inline-block"
+          />
+          Live · Synced
+        </span>
+
         {title && (
-          <h2 className={`font-headline font-black text-lg md:text-xl tracking-tighter text-primary truncate transition-opacity duration-200 ${searchExpanded ? 'opacity-0 sm:opacity-100' : 'opacity-100'}`}>
+          <h2
+            className={cn(
+              'font-headline font-bold text-lg md:text-xl tracking-tight text-on-surface truncate transition-opacity duration-200',
+              searchExpanded ? 'opacity-0 sm:opacity-100' : 'opacity-100',
+            )}
+            style={{ letterSpacing: '-0.012em' }}
+          >
             {title}
           </h2>
         )}
 
         {/* Desktop search bar */}
-        <div className="relative hidden sm:block">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">
+        <div className="relative hidden sm:block" style={{ flex: 1, maxWidth: 340, marginLeft: 4 }}>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-on-surface-variant/60">
             search
           </span>
           <input
-            className="bg-surface-container-low rounded-xl pl-9 pr-4 py-2 text-sm w-48 lg:w-56 focus:ring-2 focus:ring-primary/20 focus:w-64 lg:focus:w-72 transition-all duration-300 outline-none placeholder:text-on-surface-variant/50"
+            style={{
+              width: '100%',
+              background: 'var(--bg-glass-strong)',
+              border: '1px solid var(--border-glass)',
+              borderRadius: 10,
+              padding: '8px 14px 8px 36px',
+              fontSize: 13,
+              color: 'var(--fg-1)',
+              outline: 'none',
+              transition: 'all 180ms',
+            }}
+            className="focus:border-[var(--fg-cobalt)] focus:shadow-[0_0_0_3px_rgb(59_91_255/0.15)] placeholder:text-on-surface-variant/40"
             placeholder={t('searchPlaceholder')}
             type="text"
             value={query}
@@ -94,20 +148,33 @@ export const TopBar = ({ title, userName, userRole }: TopBarProps) => {
         <button
           onClick={() => setSearchExpanded((v) => !v)}
           aria-label="Search"
-          className="sm:hidden p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all duration-200 active:scale-90"
+          style={iconBtnStyle}
+          className="sm:hidden hover:!bg-[var(--bg-glass-strong)] hover:text-on-surface active:scale-90"
         >
           <span className="material-symbols-outlined text-[22px]">{searchExpanded ? 'close' : 'search'}</span>
         </button>
       </div>
 
-      {/* Mobile expanded search — drops below header */}
+      {/* Mobile expanded search */}
       {searchExpanded && (
-        <div className="absolute top-full inset-x-0 sm:hidden bg-surface-container-lowest border-b border-outline-variant/10 px-4 py-2 animate-fade-in shadow-sm">
+        <div
+          style={{ background: 'var(--bg-glass-strong)', borderBottom: '1px solid var(--border-glass)' }}
+          className="absolute top-full inset-x-0 sm:hidden px-4 py-2 animate-fade-in"
+        >
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">search</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-on-surface-variant/60">search</span>
             <input
               autoFocus
-              className="bg-surface-container-low rounded-xl pl-9 pr-4 py-2 text-sm w-full outline-none"
+              style={{
+                width: '100%',
+                background: 'var(--bg-glass)',
+                border: '1px solid var(--border-glass)',
+                borderRadius: 10,
+                padding: '8px 14px 8px 36px',
+                fontSize: 13,
+                color: 'var(--fg-1)',
+                outline: 'none',
+              }}
               placeholder={t('searchPlaceholder')}
               type="text"
               value={query}
@@ -119,26 +186,30 @@ export const TopBar = ({ title, userName, userRole }: TopBarProps) => {
       )}
 
       {/* Right actions */}
-      <div className="flex items-center gap-1 md:gap-1.5 shrink-0">
+      <div className="flex items-center gap-1 shrink-0">
         <LanguageSwitcher />
 
+        {/* Theme toggle */}
         <button
           onClick={toggle}
           title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
-          className="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all duration-200 active:scale-90"
+          style={iconBtnStyle}
+          className="hover:!bg-[var(--bg-glass-strong)] hover:!text-on-surface hover:scale-105 active:scale-[0.92]"
         >
-          <span className="material-symbols-outlined text-[22px]">
+          <span className="material-symbols-outlined text-[20px]">
             {theme === 'dark' ? 'light_mode' : 'dark_mode'}
           </span>
         </button>
 
+        {/* Notifications */}
         <div ref={alertRef} className="relative hidden sm:block">
           <button
             onClick={() => setShowAlerts((v) => !v)}
-            className="relative p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all duration-200 active:scale-90"
+            style={iconBtnStyle}
+            className="hover:!bg-[var(--bg-glass-strong)] hover:!text-on-surface hover:scale-105 active:scale-[0.92] relative"
             title={alertCount > 0 ? `${alertCount} lead(s) chaud(s) sans relance` : 'Notifications'}
           >
-            <span className="material-symbols-outlined text-[22px]">notifications</span>
+            <span className="material-symbols-outlined text-[20px]">notifications</span>
             {alertCount > 0 && (
               <span className="absolute top-1 right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-error text-white text-[9px] font-black px-1 leading-none">
                 {alertCount > 9 ? '9+' : alertCount}
@@ -147,8 +218,19 @@ export const TopBar = ({ title, userName, userRole }: TopBarProps) => {
           </button>
 
           {showAlerts && (
-            <div className="absolute right-0 top-full mt-2 w-72 bg-surface-container-lowest rounded-2xl shadow-[0px_24px_48px_rgba(26,28,31,0.12)] overflow-hidden z-50">
-              <div className="px-4 py-3 bg-surface-container-low flex items-center gap-2">
+            <div
+              style={{
+                background: 'var(--bg-glass-strong)',
+                backdropFilter: 'blur(28px) saturate(140%)',
+                border: '1px solid var(--border-glass)',
+                boxShadow: 'var(--shadow-xl)',
+              }}
+              className="absolute right-0 top-full mt-2 w-72 rounded-[20px] overflow-hidden z-50"
+            >
+              <div
+                style={{ background: 'var(--bg-card-low)', borderBottom: '1px solid var(--border-glass)' }}
+                className="px-4 py-3 flex items-center gap-2"
+              >
                 <span className="material-symbols-outlined text-[16px] text-error">local_fire_department</span>
                 <p className="text-xs font-bold text-on-surface">Leads chauds sans relance</p>
                 <span className="ml-auto text-[10px] font-bold text-error bg-error/10 px-2 py-0.5 rounded-full">{alertCount}</span>
@@ -158,8 +240,9 @@ export const TopBar = ({ title, userName, userRole }: TopBarProps) => {
               ) : (
                 <ul className="divide-y divide-outline-variant/5 max-h-64 overflow-y-auto">
                   {alertLeads.slice(0, 8).map((l) => (
-                    <li key={l.id}
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-container cursor-pointer transition-colors"
+                    <li
+                      key={l.id}
+                      className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors hover:bg-[var(--bg-card-low)]"
                       onClick={() => { router.push('/leads'); setShowAlerts(false); }}
                     >
                       <div className="w-7 h-7 rounded-lg bg-error/10 flex items-center justify-center shrink-0">
@@ -173,10 +256,11 @@ export const TopBar = ({ title, userName, userRole }: TopBarProps) => {
                   ))}
                 </ul>
               )}
-              <div className="px-4 py-2.5 bg-surface-container-low">
+              <div style={{ borderTop: '1px solid var(--border-glass)', background: 'var(--bg-card-low)' }} className="px-4 py-2.5">
                 <button
                   onClick={() => { router.push('/leads'); setShowAlerts(false); }}
-                  className="w-full text-xs font-bold text-primary hover:text-primary/80 transition-colors"
+                  style={{ color: 'var(--fg-cobalt)' }}
+                  className="w-full text-xs font-bold hover:opacity-80 transition-opacity"
                 >
                   Voir tous les leads →
                 </button>
@@ -185,14 +269,32 @@ export const TopBar = ({ title, userName, userRole }: TopBarProps) => {
           )}
         </div>
 
-        {/* User pill */}
+        {/* User avatar */}
         <div className="ml-1 flex items-center gap-2 cursor-pointer group">
           <div className="hidden md:block text-right">
-            <p className="text-xs font-bold text-primary font-headline leading-tight">{userName ?? '—'}</p>
+            <p className="text-xs font-bold text-on-surface font-headline leading-tight" style={{ letterSpacing: '-0.012em' }}>
+              {userName ?? '—'}
+            </p>
             <p className="text-[10px] text-on-surface-variant capitalize">{userRole ?? t('userRole')}</p>
           </div>
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center outline outline-1 outline-primary/20 group-hover:outline-primary/40 group-hover:scale-105 transition-all duration-200">
-            <span className="material-symbols-outlined text-[16px] text-primary">person</span>
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 9999,
+              background: 'var(--gradient-primary-cta)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 12,
+              fontWeight: 600,
+              boxShadow: '0 0 0 2px var(--bg-glass-strong)',
+              transition: 'all 200ms',
+            }}
+            className="group-hover:scale-105"
+          >
+            {userName ? userName.charAt(0).toUpperCase() : '?'}
           </div>
         </div>
       </div>

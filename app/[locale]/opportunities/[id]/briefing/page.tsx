@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import {
   ShieldAlert,
   Lightbulb,
@@ -7,7 +9,8 @@ import {
   Globe,
   type LucideIcon,
 } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { Sidebar } from '../../../../../components/Sidebar';
 import { StageSelector } from '../../../../../components/StageSelector';
@@ -35,30 +38,71 @@ const InsightItem = ({ icon: Icon, label, value, desc }: InsightItemProps) => (
   </div>
 );
 
-type Props = {
-  params: { id: string };
-};
+export default function BriefingPage() {
+  const t = useTranslations('Briefing');
+  const params = useParams<{ id: string }>();
+  const id = params.id;
 
-const BriefingPage = async ({ params }: Props) => {
-  const { id } = params;
-  const t = await getTranslations('Briefing');
+  const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
+  const [briefing, setBriefing] = useState<Briefing | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  let opportunity: Opportunity | null = null;
-  let briefing: Briefing | null = null;
-
-  try {
-    [opportunity, briefing] = await Promise.all([
+  useEffect(() => {
+    if (!id) return;
+    Promise.all([
       opportunityApi.getOne(id),
       opportunityApi.getBriefing(id),
-    ]);
-  } catch (error) {
-    console.error("Failed to fetch briefing data:", error);
+    ]).then(([opp, b]) => {
+      setOpportunity(opp as Opportunity);
+      setBriefing(b as Briefing);
+    }).catch((err) => {
+      console.error('Failed to fetch briefing data:', err);
+      setError(true);
+    }).finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-background overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <header className="w-full sticky top-0 z-40 bg-surface-container-lowest/90 backdrop-blur-xl shadow-sm flex items-center justify-between px-6 py-3">
+            <div className="h-4 w-48 bg-surface-container-high rounded-full animate-pulse" />
+          </header>
+          <section className="p-8 max-w-5xl mx-auto w-full space-y-8">
+            <div className="h-10 w-96 bg-surface-container-high rounded-2xl animate-pulse" />
+            <div className="h-4 w-64 bg-surface-container-low rounded-full animate-pulse" />
+            <div className="grid grid-cols-12 gap-8 mt-8">
+              <div className="col-span-8 space-y-6">
+                <div className="h-48 bg-surface-container-low rounded-2xl animate-pulse" />
+                <div className="h-32 bg-surface-container-low rounded-2xl animate-pulse" />
+              </div>
+              <div className="col-span-4 space-y-4">
+                <div className="h-48 bg-surface-container-low rounded-2xl animate-pulse" />
+                <div className="h-24 bg-surface-container-low rounded-2xl animate-pulse" />
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
   }
 
-  if (!opportunity || !briefing) {
+  if (error || !opportunity || !briefing) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <p className="text-on-surface-variant font-medium">Loading briefing or not found...</p>
+      <div className="flex h-screen bg-background overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center bg-surface">
+          <div className="text-center">
+            <span className="material-symbols-outlined text-[48px] text-outline/40 block mb-3">error_outline</span>
+            <p className="font-bold text-on-surface mb-1">Briefing introuvable</p>
+            <p className="text-sm text-on-surface-variant mb-4">Impossible de charger les données de cette opportunité.</p>
+            <Link href="/opportunities" className="px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-xl">
+              Retour aux opportunités
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -67,7 +111,7 @@ const BriefingPage = async ({ params }: Props) => {
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="w-full sticky top-0 z-40 bg-surface-container-lowest/90 backdrop-blur-xl shadow-sm flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-2 text-on-surface-variant">
             <Link href="/dashboard" className="text-[11px] font-bold hover:text-primary transition-colors">
@@ -121,9 +165,7 @@ const BriefingPage = async ({ params }: Props) => {
                   {t('aiDrivenStrategy')}
                 </h3>
                 <div className="bg-surface-container-lowest p-10 rounded-2xl shadow-sm leading-relaxed">
-                  <p
-                    className="text-on-surface text-lg mb-6"
-                  >
+                  <p className="text-on-surface text-lg mb-6">
                     {briefing.ai_strategy}
                   </p>
                 </div>
@@ -151,14 +193,14 @@ const BriefingPage = async ({ params }: Props) => {
                   <InsightItem
                     icon={TrendingUp}
                     label={t('demandIndex')}
-                    value={briefing.market_insights.demand_index || "N/A"}
-                    desc={briefing.market_insights.sector_trend || ""}
+                    value={briefing.market_insights.demand_index || 'N/A'}
+                    desc={briefing.market_insights.sector_trend || ''}
                   />
                   <InsightItem
                     icon={Globe}
                     label={t('competitorAnalysis')}
-                    value={briefing.market_insights.competitor_count || "—"}
-                    desc={briefing.market_insights.competitor_analysis || ""}
+                    value={briefing.market_insights.competitor_count || '—'}
+                    desc={briefing.market_insights.competitor_analysis || ''}
                   />
                 </div>
               </div>
@@ -183,6 +225,4 @@ const BriefingPage = async ({ params }: Props) => {
       </div>
     </div>
   );
-};
-
-export default BriefingPage;
+}

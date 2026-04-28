@@ -50,6 +50,8 @@ export interface LeadResult {
   source: string;
   relevance_score: number;
   avatar_initials: string;
+  contact_email: string | null;
+  contact_phone: string | null;
 }
 
 export interface LeadSearchResponse {

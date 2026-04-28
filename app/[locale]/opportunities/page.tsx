@@ -73,7 +73,7 @@ function OpportunitiesListPageInner() {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar
           userName={user?.email?.split('@')[0].replace('.', ' ') ?? undefined}
           userRole={user?.role ?? undefined}

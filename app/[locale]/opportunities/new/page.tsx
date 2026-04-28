@@ -80,7 +80,7 @@ export default function NewOpportunityPage() {
     return (
       <div className="flex h-screen bg-background overflow-hidden">
         <Sidebar />
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface">
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <TopBar />
           <section className="p-8 flex-1 overflow-y-auto custom-scrollbar flex items-center justify-center">
             <div className="max-w-md w-full text-center">
@@ -119,7 +119,7 @@ export default function NewOpportunityPage() {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar />
         <section className="p-8 flex-1 overflow-y-auto custom-scrollbar">
           <div className="max-w-xl mx-auto">

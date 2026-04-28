@@ -5,212 +5,221 @@ import { useTranslations } from 'next-intl';
 import { Sidebar } from '../../../components/Sidebar';
 import { TopBar } from '../../../components/TopBar';
 import { ErrorBanner } from '../../../components/ErrorBanner';
-import { cn } from '../../../lib/cn';
 import { opportunityApi, usersApi } from '../../../lib/api';
 import { Opportunity, User } from '../../../lib/types';
 import { Link } from '@/i18n/navigation';
 import { useAuth } from '../../../lib/auth';
 
 const formatCurrency = (value: number) => {
-  if (value >= 1000) {
-    return `$${(value / 1000).toFixed(0)}k`;
-  }
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`;
   return `$${value}`;
 };
 
-const getPriorityClass = (priority: string) => {
-  switch (priority) {
-    case 'high':
-      return 'bg-tertiary-container text-on-tertiary-container';
-    case 'medium':
-      return 'bg-surface-container-high text-on-surface-variant';
-    default:
-      return 'bg-surface-container-low text-on-surface-variant/70';
-  }
-};
-
+/* ── Metric card (Aurora Glass) ─────────────────────────────────────────── */
 interface MetricCardProps {
-  title: string;
+  label: string;
   value: string;
   trend: string;
-  trendHighlight?: boolean;
   icon: string;
-  accentClass: string;
+  accent: 'cobalt' | 'lime' | 'cyan' | 'amber';
 }
 
-interface PipelineColumnProps {
+const accentColors: Record<string, { fg: string; glow: string }> = {
+  cobalt: { fg: 'var(--fg-cobalt)', glow: 'var(--accent-cobalt)' },
+  lime:   { fg: 'var(--fg-lime)',   glow: 'var(--accent-lime)' },
+  cyan:   { fg: 'var(--fg-cyan)',   glow: 'var(--accent-cyan)' },
+  amber:  { fg: 'var(--fg-amber)',  glow: 'var(--accent-amber)' },
+};
+
+const MetricCard = ({ label, value, trend, icon, accent }: MetricCardProps) => {
+  const { fg } = accentColors[accent];
+  return (
+    <div
+      style={{
+        background: 'var(--bg-glass-strong)',
+        backdropFilter: 'blur(20px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+        border: '1px solid var(--border-glass)',
+        borderRadius: 'var(--radius-xl)',
+        padding: '18px 22px',
+        boxShadow: 'var(--shadow-sm)',
+        transition: 'all 280ms var(--ease-out-quart)',
+        position: 'relative',
+        overflow: 'hidden',
+        cursor: 'default',
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-md)'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)'; }}
+    >
+      {/* Eyebrow label */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em',
+          color: fg,
+        }}>
+          <span style={{ display: 'block', width: 18, height: 2, background: 'currentColor', borderRadius: 2 }} />
+          {label}
+        </div>
+        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--fg-3)' }}>{icon}</span>
+      </div>
+
+      {/* Value */}
+      <div style={{
+        fontFamily: 'Geist, var(--font-manrope), sans-serif',
+        fontWeight: 700,
+        fontSize: 32,
+        letterSpacing: '-0.025em',
+        lineHeight: 1.05,
+        color: 'var(--fg-1)',
+        fontVariantNumeric: 'tabular-nums',
+      }}>
+        {value}
+      </div>
+
+      {/* Trend */}
+      <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, color: 'var(--fg-2)' }}>
+        {trend}
+      </div>
+    </div>
+  );
+};
+
+/* ── Kanban column ─────────────────────────────────────────────────────── */
+interface KanbanColProps {
   title: string;
   count: number;
-  dotClass: string;
+  dot: string;
   children: React.ReactNode;
 }
 
-interface PipelineCardProps {
+const dotColors: Record<string, string> = {
+  discovery:   'rgb(var(--accent-cobalt))',
+  proposal:    'rgb(var(--accent-cyan))',
+  negotiation: 'rgb(var(--accent-amber))',
+  closed:      'rgb(var(--accent-lime))',
+};
+
+const KanbanCol = ({ title, count, dot, children }: KanbanColProps) => (
+  <div style={{ flexShrink: 0, width: 272, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--fg-2)' }}>
+        <span style={{ width: 8, height: 8, borderRadius: 99, background: dotColors[dot] ?? 'var(--fg-2)', boxShadow: `0 0 8px ${dotColors[dot] ?? 'transparent'}` }} />
+        {title}
+      </div>
+      <span style={{
+        fontSize: 10, fontWeight: 700, color: 'var(--fg-2)',
+        background: 'var(--bg-glass-strong)',
+        padding: '2px 8px',
+        borderRadius: 9999,
+        border: '1px solid var(--border-glass)',
+      }}>
+        {count}
+      </span>
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {children}
+    </div>
+  </div>
+);
+
+/* ── Kanban deal card ──────────────────────────────────────────────────── */
+interface KanbanCardProps {
   title: string;
   value: string;
-  priority?: string;
-  priorityClass?: string;
   initials: string;
-  initials2?: string;
   progress?: number;
-  winProb?: string;
-  daysLeft?: string;
+  badge?: string;
+  badgeStyle?: React.CSSProperties;
 }
 
-interface TeamMemberProps {
-  name: string;
-  role: string;
-  deals: number;
-  dealsLabel: string;
-}
-
-const MetricCard = ({ title, value, trend, trendHighlight, icon, accentClass }: MetricCardProps) => (
+const KanbanCard = ({ title, value, initials, progress, badge, badgeStyle }: KanbanCardProps) => (
   <div
-    className={cn(
-      'bg-surface-container-lowest p-6 rounded-2xl shadow-sm border-l-4 hover:scale-[1.02] transition-transform',
-      accentClass
-    )}
+    style={{
+      background: 'var(--bg-glass-strong)',
+      backdropFilter: 'blur(16px)',
+      border: '1px solid var(--border-glass)',
+      borderRadius: 'var(--radius-lg)',
+      padding: 14,
+      display: 'flex', flexDirection: 'column', gap: 10,
+      cursor: 'pointer',
+      transition: 'all 180ms var(--ease-out-quart)',
+    }}
+    onMouseEnter={(e) => {
+      const el = e.currentTarget as HTMLElement;
+      el.style.transform = 'translateY(-3px)';
+      el.style.boxShadow = 'var(--shadow-md)';
+      el.style.borderColor = 'rgb(var(--accent-cobalt) / 0.4)';
+    }}
+    onMouseLeave={(e) => {
+      const el = e.currentTarget as HTMLElement;
+      el.style.transform = '';
+      el.style.boxShadow = '';
+      el.style.borderColor = 'var(--border-glass)';
+    }}
   >
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{title}</p>
-      <span className="material-symbols-outlined text-[20px] text-on-surface-variant/40">{icon}</span>
-    </div>
-    <div className="flex items-baseline gap-2">
-      <span className="font-headline text-3xl font-black text-on-surface">{value}</span>
-      <span
-        className={cn(
-          'text-[10px] font-bold px-2 py-0.5 rounded-full',
-          trendHighlight
-            ? 'text-on-tertiary-container bg-tertiary-container/15'
-            : 'text-on-primary-container bg-on-primary-container/15'
-        )}
-      >
-        {trend}
-      </span>
-    </div>
-  </div>
-);
-
-const PipelineColumn = ({ title, count, dotClass, children }: PipelineColumnProps) => (
-  <div className="flex-none w-72 space-y-4">
-    <div className="flex items-center justify-between px-2">
-      <span className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-        {title} ({count})
-      </span>
-      <span className={cn('h-2 w-2 rounded-full', dotClass)} />
-    </div>
-    <div className="space-y-4">{children}</div>
-  </div>
-);
-
-const PipelineCard = ({
-  title,
-  value,
-  priority,
-  priorityClass,
-  initials,
-  initials2,
-  progress,
-  winProb,
-  daysLeft,
-}: PipelineCardProps) => (
-  <div className="bg-surface-container-lowest p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group">
-    <div className="flex justify-between items-start mb-3">
-      <h4 className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors">
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--fg-1)', letterSpacing: '-0.01em', flex: 1, marginRight: 8 }}>
         {title}
-      </h4>
-      <span className="material-symbols-outlined text-[16px] text-outline/50">more_horiz</span>
-    </div>
-
-    <div className="flex items-center gap-2 mb-4">
-      {priority && (
-        <span className={cn('text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest', priorityClass)}>
-          {priority}
+      </div>
+      {badge && (
+        <span style={{
+          fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em',
+          padding: '3px 8px', borderRadius: 9999, flexShrink: 0,
+          ...badgeStyle,
+        }}>
+          {badge}
         </span>
       )}
-      <span className="text-[10px] font-bold text-on-surface-variant">{value}</span>
     </div>
-
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ fontFamily: 'Geist, var(--font-manrope), sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--fg-1)' }}>
+        {value}
+      </div>
+      <div style={{
+        width: 24, height: 24, borderRadius: 9999,
+        background: 'var(--gradient-primary-cta)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 9, fontWeight: 600, color: '#fff',
+      }}>
+        {initials}
+      </div>
+    </div>
     {progress != null && (
-      <div className="w-full bg-surface-container-high h-1 rounded-full mb-3 overflow-hidden">
-        <div className="bg-primary h-1 rounded-full transition-all" style={{ width: `${progress}%` }} />
+      <div style={{ width: '100%', height: 4, background: 'var(--bg-card-mid)', borderRadius: 99, overflow: 'hidden' }}>
+        <div style={{
+          height: '100%',
+          width: `${progress}%`,
+          background: 'var(--gradient-primary-cta)',
+          borderRadius: 'inherit',
+          transition: 'width 1.2s var(--ease-out-quart)',
+        }} />
       </div>
     )}
-
-    <div className="flex justify-between items-center">
-      <div className="flex -space-x-2">
-        {initials && (
-          <div className="h-6 w-6 rounded-full bg-surface-container-high flex items-center justify-center text-[9px] font-bold text-on-surface outline outline-2 outline-surface-container-lowest">
-            {initials}
-          </div>
-        )}
-        {initials2 && (
-          <div className="h-6 w-6 rounded-full bg-surface-container-highest flex items-center justify-center text-[9px] font-bold text-on-surface outline outline-2 outline-surface-container-lowest">
-            {initials2}
-          </div>
-        )}
-      </div>
-      {winProb ? (
-        <span className="text-[10px] text-on-tertiary-container font-bold uppercase tracking-wider">
-          {winProb}
-        </span>
-      ) : (
-        <span className="text-[9px] text-on-surface-variant flex items-center gap-1 font-bold">
-          <span className="material-symbols-outlined text-[14px]">schedule</span>
-          {daysLeft}
-        </span>
-      )}
-    </div>
   </div>
 );
 
-const TeamMember = ({ name, role, deals, dealsLabel }: TeamMemberProps) => (
-  <div className="p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors">
-    <div className="flex items-center gap-3">
-      <div className="h-10 w-10 rounded-full bg-surface-container-high flex items-center justify-center outline outline-1 outline-outline-variant/20">
-        <span className="material-symbols-outlined text-[20px] text-on-surface-variant">person</span>
-      </div>
-      <div>
-        <p className="text-sm font-bold text-on-surface">{name}</p>
-        <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider">{role}</p>
-      </div>
-    </div>
-    <span className="text-[10px] font-black text-on-tertiary-container px-2 py-1 bg-tertiary-container/15 rounded-xl">
-      {deals} {dealsLabel}
-    </span>
-  </div>
-);
-
+/* ── Skeleton ──────────────────────────────────────────────────────────── */
 function DashboardSkeleton() {
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-32 bg-surface-container-low rounded-2xl animate-pulse" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        {[0, 1, 2].map((i) => (
+          <div key={i} style={{
+            height: 120, borderRadius: 20,
+            background: 'var(--bg-glass)',
+            border: '1px solid var(--border-glass)',
+            animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+          }} />
         ))}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-3 space-y-4">
-          <div className="h-6 bg-surface-container-high rounded-full w-40 animate-pulse" />
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-64 bg-surface-container-low rounded-2xl animate-pulse" />
-            ))}
-          </div>
-        </div>
-        <div className="space-y-4">
-          <div className="h-6 bg-surface-container-high rounded-full w-32 animate-pulse" />
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-16 bg-surface-container-low rounded-xl animate-pulse" />
-            ))}
-          </div>
-        </div>
-      </div>
+      <div style={{ height: 140, borderRadius: 20, background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }} />
     </div>
   );
 }
 
+/* ── Page ─────────────────────────────────────────────────────────────── */
 const DashboardPage = () => {
   const t = useTranslations('Dashboard');
   const tErr = useTranslations('Errors');
@@ -246,176 +255,246 @@ const DashboardPage = () => {
     ? ((opportunities.reduce((acc, o) => acc + o.win_probability, 0) / opportunities.length) * 100).toFixed(0)
     : '0';
 
-  const stages = [
-    { id: 'discovery', title: t('discovery'), dotClass: 'bg-surface-container-highest' },
-    { id: 'proposal', title: t('proposal'), dotClass: 'bg-on-tertiary-container' },
-    { id: 'negotiation', title: t('negotiation'), dotClass: 'bg-primary' },
-    { id: 'closed', title: t('closed'), dotClass: 'bg-on-primary-container' },
-  ];
-
   const goalProgress = totalValue > 0
     ? Math.round((closedOpps.reduce((acc, o) => acc + o.value, 0) / totalValue) * 100)
     : 0;
 
   const displayName = user?.email?.split('@')[0].replace('.', ' ') ?? '—';
 
+  const stages = [
+    { id: 'discovery',   title: t('discovery'),   dot: 'discovery' },
+    { id: 'proposal',    title: t('proposal'),     dot: 'proposal' },
+    { id: 'negotiation', title: t('negotiation'),  dot: 'negotiation' },
+    { id: 'closed',      title: t('closed'),       dot: 'closed' },
+  ];
+
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden" style={{ position: 'relative', zIndex: 1 }}>
       <Sidebar />
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar userName={displayName} userRole={user?.role} />
 
-        <section className="p-8 flex-1 overflow-y-auto custom-scrollbar">
+        <section className="p-7 flex-1 overflow-y-auto custom-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {loadError && <ErrorBanner message={loadError} />}
-          <div className="mb-8 flex justify-between items-end">
+
+          {/* Page header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}
+            className="animate-page-rise stagger-1">
             <div>
-              <h2 className="font-headline text-3xl font-black tracking-tight text-primary">
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em',
+                color: 'var(--fg-cobalt)', marginBottom: 6,
+              }}>
+                <span style={{ display: 'block', width: 18, height: 2, background: 'currentColor', borderRadius: 2 }} />
+                Overview
+              </div>
+              <h1 style={{
+                fontFamily: 'Geist, var(--font-manrope), sans-serif',
+                fontWeight: 700, fontSize: 32,
+                letterSpacing: '-0.025em', lineHeight: 1.05,
+                color: 'var(--fg-1)', margin: 0,
+              }}>
                 {t('title')}
-              </h2>
-              <p className="text-on-surface-variant font-medium mt-1">
-                {t('subtitle')}
-              </p>
+              </h1>
+              <p style={{ color: 'var(--fg-2)', fontSize: 14, marginTop: 4 }}>{t('subtitle')}</p>
             </div>
-            <div className="flex gap-3">
-              <button className="px-4 py-2 bg-surface-container-lowest text-on-surface text-sm font-semibold rounded-xl hover:bg-surface-container-low transition-colors shadow-sm outline outline-1 outline-outline-variant/15">
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  background: 'var(--bg-glass-strong)',
+                  color: 'var(--fg-1)', border: '1px solid var(--border-glass)',
+                  borderRadius: 10, padding: '9px 16px', fontWeight: 600, fontSize: 13,
+                  cursor: 'pointer', backdropFilter: 'blur(12px)', transition: 'all 180ms',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>download</span>
                 {t('downloadReport')}
               </button>
-              <Link href="/opportunities/new" className="px-4 py-2 bg-gradient-to-br from-primary to-primary-container text-on-primary text-sm font-semibold rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-transform">
+              <Link
+                href="/opportunities/new"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  background: 'var(--gradient-primary-cta)',
+                  color: '#fff', border: 'none',
+                  borderRadius: 10, padding: '9px 18px',
+                  fontFamily: 'Geist, var(--font-manrope), sans-serif',
+                  fontWeight: 600, fontSize: 13.5,
+                  boxShadow: 'var(--shadow-cta)',
+                  transition: 'all 180ms var(--ease-spring)',
+                  textDecoration: 'none',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 16px 40px rgb(59 91 255 / 0.45)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-cta)'; }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
                 {t('newOpportunity')}
               </Link>
             </div>
           </div>
 
           {loading ? <DashboardSkeleton /> : (
-          <>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <MetricCard
-              title={t('totalPipelineValue')}
-              value={totalValue >= 1_000_000
-                ? `$${(totalValue / 1_000_000).toFixed(1)}M`
-                : `$${(totalValue / 1000).toFixed(0)}k`}
-              trend={`${opportunities.length} ${t('oppsCount')}`}
-              icon="analytics"
-              accentClass="border-primary"
-            />
-            <MetricCard
-              title={t('conversionRate')}
-              value={`${conversionRate}%`}
-              trend={`${closedOpps.length} ${t('closed')}`}
-              icon="trending_up"
-              accentClass="border-on-tertiary-container"
-            />
-            <MetricCard
-              title={t('avgWinProbability')}
-              value={`${avgWinProb}%`}
-              trend={t('acrossAllDeals')}
-              trendHighlight
-              icon="bolt"
-              accentClass="border-on-primary-container"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-3 space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="font-headline text-xl font-bold text-primary">{t('projectPipeline')}</h3>
-                <div className="flex gap-2">
-                  <span className="px-3 py-1 bg-surface-container-high text-[10px] font-bold text-on-surface-variant rounded-full uppercase tracking-widest">
-                    {t('allStages')}
-                  </span>
-                  <span className="px-3 py-1 bg-surface-container-high text-[10px] font-bold text-on-surface-variant rounded-full uppercase tracking-widest">
-                    {t('last30Days')}
-                  </span>
+            <>
+              {/* Executive hero card */}
+              <div
+                className="animate-page-rise stagger-2"
+                style={{
+                  background: 'linear-gradient(135deg, rgb(var(--accent-cobalt)) 0%, rgb(var(--color-primary)) 60%, rgb(var(--accent-cyan)) 110%)',
+                  color: '#fff',
+                  padding: 26,
+                  borderRadius: 'var(--radius-xl)',
+                  boxShadow: 'var(--shadow-cta)',
+                  display: 'grid',
+                  gridTemplateColumns: '1.4fr 1fr',
+                  gap: 32,
+                  alignItems: 'center',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ position: 'absolute', inset: '-50%', background: 'radial-gradient(500px 500px at 80% 20%, rgba(255,255,255,0.18), transparent 60%)', pointerEvents: 'none' }} />
+                <div style={{ position: 'relative' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgb(var(--accent-cyan))' }}>
+                    <span style={{ display: 'block', width: 18, height: 2, background: 'currentColor', borderRadius: 2 }} />
+                    {t('executiveOverview')}
+                  </div>
+                  <h2 style={{ fontFamily: 'Geist, var(--font-manrope), sans-serif', fontWeight: 700, fontSize: 40, letterSpacing: '-0.025em', lineHeight: 1.05, color: '#fff', margin: '8px 0' }}>
+                    {formatCurrency(totalValue)} {t('salesVelocity')}
+                  </h2>
+                  <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: 14, lineHeight: 1.55, maxWidth: 480 }}>
+                    {opportunities.length} {t('oppsCount')} — {closedOpps.length} {t('closed')}
+                  </p>
+                  <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+                    <Link
+                      href="/copilot"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                        background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(10px)',
+                        color: '#fff', border: 'none', borderRadius: 10,
+                        padding: '9px 16px', fontWeight: 600, fontSize: 13,
+                        cursor: 'pointer', textDecoration: 'none',
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>auto_awesome</span>
+                      Open Copilot
+                    </Link>
+                    <Link
+                      href="/pipeline"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                        background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(10px)',
+                        color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 10,
+                        padding: '9px 16px', fontWeight: 600, fontSize: 13,
+                        cursor: 'pointer', textDecoration: 'none',
+                      }}
+                    >
+                      {t('projectPipeline')}
+                    </Link>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, position: 'relative' }}>
+                  {[
+                    { label: t('conversionRate'),    value: `${conversionRate}%` },
+                    { label: t('avgWinProbability'), value: `${avgWinProb}%` },
+                    { label: t('goalProgress'),      value: `${goalProgress}%` },
+                    { label: t('closed'),            value: String(closedOpps.length) },
+                  ].map((m) => (
+                    <div key={m.label} style={{
+                      background: 'rgba(255,255,255,0.10)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      backdropFilter: 'blur(12px)',
+                      borderRadius: 'var(--radius-lg)', padding: '14px 18px',
+                    }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>{m.label}</div>
+                      <div style={{ fontFamily: 'Geist, sans-serif', fontWeight: 700, fontSize: 28, color: '#fff', marginTop: 4 }}>{m.value}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="flex gap-6 overflow-x-auto pb-4 custom-scrollbar">
-                {stages.map((stage) => {
-                  const stageOpps = opportunities.filter((opp) => opp.stage === stage.id);
-                  return (
-                    <PipelineColumn key={stage.id} title={stage.title} count={stageOpps.length} dotClass={stage.dotClass}>
-                      {stageOpps.map((opp) => (
-                        <Link key={opp.id} href={`/opportunities/${opp.id}/briefing`}>
-                          {stage.id === 'closed' ? (
-                            <div className="bg-on-primary-container/8 p-4 rounded-2xl hover:bg-on-primary-container/12 transition-colors cursor-pointer group">
-                              <h4 className="text-sm font-bold text-primary mb-3 group-hover:text-primary-container transition-colors">{opp.title}</h4>
-                              <div className="flex items-center gap-2 mb-4">
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-on-primary-container/15 text-on-primary-container uppercase tracking-widest">
-                                  {t('completed')}
-                                </span>
-                                <span className="text-[10px] font-bold text-primary">{formatCurrency(opp.value)}</span>
-                              </div>
-                              <div className="flex items-center text-xs text-on-primary-container font-medium">
-                                <span className="material-symbols-outlined text-[16px] mr-1">check_circle</span>
-                                {t('onboardedToday')}
-                              </div>
-                            </div>
-                          ) : (
-                            <PipelineCard
+              {/* Metric strip */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }} className="animate-page-rise stagger-3">
+                <MetricCard
+                  label={t('totalPipelineValue')}
+                  value={formatCurrency(totalValue)}
+                  trend={`${opportunities.length} ${t('oppsCount')}`}
+                  icon="analytics"
+                  accent="cobalt"
+                />
+                <MetricCard
+                  label={t('conversionRate')}
+                  value={`${conversionRate}%`}
+                  trend={`${closedOpps.length} ${t('closed')}`}
+                  icon="trending_up"
+                  accent="cyan"
+                />
+                <MetricCard
+                  label={t('avgWinProbability')}
+                  value={`${avgWinProb}%`}
+                  trend={t('acrossAllDeals')}
+                  icon="bolt"
+                  accent="lime"
+                />
+              </div>
+
+              {/* Pipeline kanban */}
+              <div className="animate-page-rise stagger-4">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <h3 style={{ fontFamily: 'Geist, var(--font-manrope), sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--fg-1)', letterSpacing: '-0.012em' }}>
+                    {t('projectPipeline')}
+                  </h3>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[t('allStages'), t('last30Days')].map((label) => (
+                      <span key={label} style={{
+                        fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em',
+                        padding: '4px 12px', borderRadius: 9999,
+                        background: 'var(--bg-glass-strong)',
+                        border: '1px solid var(--border-glass)',
+                        color: 'var(--fg-2)',
+                      }}>
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 16 }} className="custom-scrollbar">
+                  {stages.map((stage) => {
+                    const stageOpps = opportunities.filter((o) => o.stage === stage.id);
+                    return (
+                      <KanbanCol key={stage.id} title={stage.title} count={stageOpps.length} dot={stage.dot}>
+                        {stageOpps.map((opp) => (
+                          <Link key={opp.id} href={`/opportunities/${opp.id}/briefing`} style={{ textDecoration: 'none' }}>
+                            <KanbanCard
                               title={opp.title}
                               value={formatCurrency(opp.value)}
-                              priority={opp.priority === 'high' ? t('highPriority') : opp.priority === 'medium' ? t('qualified') : undefined}
-                              priorityClass={getPriorityClass(opp.priority)}
                               initials={opp.company_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
                               progress={stage.id === 'negotiation' ? opp.win_probability * 100 : undefined}
-                              winProb={stage.id === 'negotiation' ? `${(opp.win_probability * 100).toFixed(0)}% ${t('winProb')}` : undefined}
-                              daysLeft={t('daysLeft')}
+                              badge={
+                                opp.priority === 'high' ? t('highPriority') :
+                                opp.priority === 'medium' ? t('qualified') :
+                                stage.id === 'signed' ? t('completed') : undefined
+                              }
+                              badgeStyle={
+                                opp.priority === 'high'
+                                  ? { background: 'rgb(var(--accent-cobalt) / 0.12)', color: 'var(--fg-cobalt)' }
+                                  : opp.priority === 'medium'
+                                  ? { background: 'rgb(var(--accent-cyan) / 0.12)', color: 'var(--fg-cyan)' }
+                                  : { background: 'rgb(var(--accent-lime) / 0.18)', color: 'var(--fg-lime)' }
+                              }
                             />
-                          )}
-                        </Link>
-                      ))}
-                    </PipelineColumn>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="bg-gradient-to-br from-primary to-primary-container text-on-primary p-6 rounded-2xl shadow-lg relative overflow-hidden group">
-                <div className="relative z-10">
-                  <h4 className="font-headline font-bold mb-2">{t('executiveOverview')}</h4>
-                  <p className="text-on-primary/80 text-sm mb-5">
-                    {t('salesVelocity')}
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
-                      <span>{t('goalProgress')}</span>
-                      <span>{goalProgress}%</span>
-                    </div>
-                    <div className="w-full bg-on-primary/10 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-on-primary h-full transition-all duration-1000"
-                        style={{ width: `${goalProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                  <span className="material-symbols-outlined !text-[120px]">insights</span>
+                          </Link>
+                        ))}
+                      </KanbanCol>
+                    );
+                  })}
                 </div>
               </div>
-
-              {user && (
-                <div>
-                  <h3 className="font-headline text-lg font-bold text-primary mb-4">
-                    {t('accountOwner')}
-                  </h3>
-                  <div className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
-                    <TeamMember
-                      name={displayName}
-                      role={user.role}
-                      deals={opportunities.length}
-                      dealsLabel={t('deals')}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          </>
+            </>
           )}
         </section>
       </main>

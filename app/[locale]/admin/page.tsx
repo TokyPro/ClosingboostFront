@@ -9,6 +9,9 @@ import { useAuth } from '../../../lib/auth';
 import { toast } from '../../../lib/toast';
 import { cn } from '../../../lib/cn';
 import { NotionIcon, AirtableIcon } from '../../../components/icons/BrandIcons';
+import { Pagination } from '../../../components/Pagination';
+
+const PAGE_SIZE = 10;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -172,6 +175,9 @@ function UsersTab({ users, loading, onAdd, onEdit, onDelete }: {
   onAdd: () => void; onEdit: (u: User) => void; onDelete: (u: User) => void;
 }) {
   const t = useTranslations('Admin');
+  const [page, setPage] = useState(1);
+  const pagedUsers = users.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <SectionCard title={`${users.length} utilisateur${users.length > 1 ? 's' : ''}`} icon="group"
       action={
@@ -184,39 +190,49 @@ function UsersTab({ users, loading, onAdd, onEdit, onDelete }: {
       {loading ? (
         <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-12 bg-surface-container-low rounded-xl animate-pulse" />)}</div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-outline-variant/10">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-container-low text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-                <th className="text-left px-5 py-3">{t('colEmail')}</th>
-                <th className="text-left px-5 py-3">{t('colRole')}</th>
-                <th className="text-left px-5 py-3">{t('colCreatedAt')}</th>
-                <th className="px-5 py-3 text-right">{t('colActions')}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/5">
-              {users.map(u => (
-                <tr key={u.id} className="hover:bg-surface-container transition-colors">
-                  <td className="px-5 py-4 font-bold text-primary">{u.email}</td>
-                  <td className="px-5 py-4">
-                    <span className="px-2.5 py-1 bg-tertiary-container text-on-tertiary-container rounded-full text-[11px] font-bold capitalize">{u.role}</span>
-                  </td>
-                  <td className="px-5 py-4 text-on-surface-variant text-xs">{new Date(u.created_at).toLocaleDateString('fr-FR')}</td>
-                  <td className="px-5 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => onEdit(u)} className="p-1.5 text-on-surface-variant hover:text-primary rounded-lg hover:bg-surface-container transition-colors">
-                        <span className="material-symbols-outlined text-[16px]">edit</span>
-                      </button>
-                      <button onClick={() => onDelete(u)} className="p-1.5 text-on-surface-variant hover:text-error rounded-lg hover:bg-error/10 transition-colors">
-                        <span className="material-symbols-outlined text-[16px]">delete</span>
-                      </button>
-                    </div>
-                  </td>
+        <>
+          <div className="overflow-x-auto rounded-xl border border-outline-variant/10">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-surface-container-low text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
+                  <th className="text-left px-5 py-3">{t('colEmail')}</th>
+                  <th className="text-left px-5 py-3">{t('colRole')}</th>
+                  <th className="text-left px-5 py-3">{t('colCreatedAt')}</th>
+                  <th className="px-5 py-3 text-right">{t('colActions')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/5">
+                {pagedUsers.map(u => (
+                  <tr key={u.id} className="hover:bg-surface-container transition-colors">
+                    <td className="px-5 py-4 font-bold text-primary">{u.email}</td>
+                    <td className="px-5 py-4">
+                      <span className="px-2.5 py-1 bg-tertiary-container text-on-tertiary-container rounded-full text-[11px] font-bold capitalize">{u.role}</span>
+                    </td>
+                    <td className="px-5 py-4 text-on-surface-variant text-xs">{new Date(u.created_at).toLocaleDateString('fr-FR')}</td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => onEdit(u)} className="p-1.5 text-on-surface-variant hover:text-primary rounded-lg hover:bg-surface-container transition-colors">
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
+                        </button>
+                        <button onClick={() => onDelete(u)} className="p-1.5 text-on-surface-variant hover:text-error rounded-lg hover:bg-error/10 transition-colors">
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {pagedUsers.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-12 text-center text-on-surface-variant text-sm">
+                      Aucun utilisateur
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <Pagination page={page} total={users.length} pageSize={PAGE_SIZE} onChange={setPage} />
+        </>
       )}
     </SectionCard>
   );
@@ -976,7 +992,7 @@ export default function AdminPage() {
     return (
       <div className="flex h-screen bg-background overflow-hidden">
         <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <TopBar />
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
@@ -993,7 +1009,7 @@ export default function AdminPage() {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar />
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           {/* Header */}

@@ -244,6 +244,8 @@ export const leadsApi = {
     company_name?: string | null;
     contact_name?: string | null;
     contact_title?: string | null;
+    contact_email?: string | null;
+    contact_phone?: string | null;
     activity_sector?: string | null;
     website_url?: string | null;
     linkedin_url?: string | null;

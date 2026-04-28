@@ -19,16 +19,27 @@ export const LanguageSwitcher = () => {
   };
 
   return (
-    <div className="flex items-center gap-1 bg-surface-container-low rounded-xl p-1">
+    <div
+      style={{ background: 'var(--bg-glass-strong)', border: '1px solid var(--border-glass)', borderRadius: 10, padding: 4 }}
+      className="flex items-center gap-1"
+    >
       {routing.locales.map((locale) => (
         <button
           key={locale}
           onClick={() => handleChange(locale)}
+          style={currentLocale === locale ? {
+            background: 'var(--gradient-primary-cta)',
+            color: '#fff',
+            borderRadius: 6,
+            boxShadow: 'var(--shadow-sm)',
+          } : {
+            background: 'transparent',
+            color: 'var(--fg-2)',
+            borderRadius: 6,
+          }}
           className={cn(
-            'px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all',
-            currentLocale === locale
-              ? 'bg-surface-container-lowest text-primary shadow-sm'
-              : 'text-on-surface-variant hover:text-primary'
+            'px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-all',
+            currentLocale !== locale && 'hover:text-on-surface',
           )}
           aria-label={t(locale as 'en' | 'fr')}
         >
